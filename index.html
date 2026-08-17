@@ -220,22 +220,26 @@
   .section-line { flex: 1; height: 1px; background: var(--border2); }
 
   .level-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: .875rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
   }
 
   .level-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: .75rem;
-    padding: 1.25rem;
+    border-radius: .625rem;
+    padding: 1rem 1.125rem;
     cursor: pointer;
     transition: border-color .2s, background .2s;
     position: relative;
     overflow: hidden;
     text-align: left;
     color: inherit;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
   }
   .level-card:hover { border-color: var(--gold); background: #14140e; }
   .level-card::before {
@@ -249,50 +253,56 @@
   }
   .level-card:hover::before { opacity: 1; }
 
-  .card-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: .875rem;
-  }
   .level-num {
-    width: 2rem; height: 2rem;
+    width: 2.125rem; height: 2.125rem;
+    flex-shrink: 0;
     background: #1a1a26;
     border: 1px solid var(--border);
     border-radius: .4rem;
     display: flex; align-items: center; justify-content: center;
-    font-size: .7rem;
+    font-size: .75rem;
     font-weight: 700;
     color: var(--muted);
   }
+  .level-card:hover .level-num { color: var(--gold); border-color: rgba(212,168,67,.4); }
+
+  .card-body { flex: 1; min-width: 0; display: block; }
 
   .card-title {
+    display: block;
     font-size: .82rem;
     font-weight: 600;
     color: var(--text);
     line-height: 1.35;
-    margin-bottom: .5rem;
+    margin-bottom: .25rem;
   }
   .level-card:hover .card-title { color: #fff; }
 
   .card-desc {
+    display: block;
     font-size: .72rem;
     color: var(--muted);
     line-height: 1.5;
   }
 
-  .card-cta {
+  .card-aside {
     display: flex;
     align-items: center;
-    gap: .3rem;
-    margin-top: .875rem;
-    font-size: .7rem;
-    font-weight: 600;
-    color: var(--gold);
-    opacity: 0;
-    transition: opacity .2s;
+    gap: .75rem;
+    flex-shrink: 0;
   }
-  .level-card:hover .card-cta { opacity: 1; }
+
+  .card-arrow {
+    color: var(--faint);
+    display: flex;
+    transition: color .2s, transform .2s;
+  }
+  .level-card:hover .card-arrow { color: var(--gold); transform: translateX(3px); }
+
+  @media (max-width: 560px) {
+    .level-card { gap: .75rem; padding: .875rem 1rem; }
+    .card-aside .track-badge { display: none; }
+  }
 
   .dash-footer {
     border-top: 1px solid var(--border2);
@@ -461,7 +471,7 @@
 
 <script>
   // ─── CHANGE THIS to your chosen password ────────────────────────────
-  var PASSWORD = 'Reunion!!!';
+  var PASSWORD = 'gametime!84';
   // ────────────────────────────────────────────────────────────────────
 
   var SESSION_KEY = 'sm_auth';
@@ -524,17 +534,19 @@
     var card = document.createElement('button');
     card.className = 'level-card';
     card.innerHTML =
-      '<div class="card-top">' +
-        '<span class="level-num">' + level.order + '</span>' +
+      '<span class="level-num">' + level.order + '</span>' +
+      '<span class="card-body">' +
+        '<span class="card-title">' + level.title + '</span>' +
+        '<span class="card-desc">' + level.desc + '</span>' +
+      '</span>' +
+      '<span class="card-aside">' +
         '<span class="track-badge ' + level.track + '">' +
           (level.track === 'nfl' ? 'NFL' : level.track === 'nba' ? 'NBA' : 'NFL · NBA') +
         '</span>' +
-      '</div>' +
-      '<div class="card-title">' + level.title + '</div>' +
-      '<div class="card-desc">' + level.desc + '</div>' +
-      '<div class="card-cta">Open module ' +
-        '<svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>' +
-      '</div>';
+        '<span class="card-arrow">' +
+          '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>' +
+        '</span>' +
+      '</span>';
 
     card.addEventListener('click', function() { openLevel(level); });
     return card;
