@@ -39,6 +39,21 @@
     .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
     @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } .grid-3 { grid-template-columns: 1fr; } }
     button { font-family: 'Open Sans', sans-serif; }
+
+    /* Responsive nav: desktop unchanged; phones get a compact scrollable strip */
+    .nav-row { display:flex; align-items:center; justify-content:space-between; min-height:56px; gap:8px; }
+    .nav-links { display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; }
+    .nav-links.tight { gap:2px; }
+    @media (max-width: 820px) {
+      .nav-row { flex-direction:column; align-items:stretch; gap:0; min-height:0; padding-top:8px; }
+      .nav-links {
+        flex-wrap:nowrap; overflow-x:auto; justify-content:flex-start;
+        margin-top:6px; padding-bottom:8px;
+        -webkit-overflow-scrolling:touch; scrollbar-width:none;
+      }
+      .nav-links::-webkit-scrollbar { display:none; }
+      .nav-links > button { flex:0 0 auto; }
+    }
   </style>
 </head>
 <body>
@@ -101,12 +116,12 @@
       return (
         <nav style={{ position:'sticky', top:0, zIndex:50, width:'100%', background:'rgba(8,8,8,0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid #222' }}>
           <div className="container">
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height:56, gap:8 }}>
+            <div className="nav-row">
               <div style={{ display:'flex', flexDirection:'column', lineHeight:1 }}>
                 <span className="bebas" style={{ color:'#D4A843', letterSpacing:'0.1em', fontSize:'1.2rem' }}>SMART MONEY</span>
                 <span style={{ color:'#444', fontSize:'0.55rem', textTransform:'uppercase', letterSpacing:'0.15em', marginTop:2 }}>Level Three</span>
               </div>
-              <div style={{ display:'flex', gap:2, flexWrap:'wrap', justifyContent:'flex-end' }}>
+              <div className="nav-links tight">
                 {SECTIONS.map(({ id, label }) => (
                   <button key={id} onClick={() => scrollTo(id)} style={{ padding:'4px 10px', fontSize:'0.63rem', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em', color: active===id ? '#D4A843' : '#555', background:'none', border:'none', borderBottom: active===id ? '2px solid #D4A843' : '2px solid transparent', cursor:'pointer', whiteSpace:'nowrap' }}>{label}</button>
                 ))}
