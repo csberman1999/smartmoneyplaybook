@@ -1,0 +1,2365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Money | Financial Literacy for Professional Athletes — Team IFA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <script src="/vendor/react.min.js" crossorigin></script>
+  <script src="/vendor/react-dom.min.js" crossorigin></script>
+  <script src="/vendor/prop-types.min.js" crossorigin></script>
+  <script src="/vendor/recharts.js" crossorigin></script>
+  <script src="/vendor/babel.min.js"></script>
+  <script>
+  (function() {
+    Babel.registerPreset("react", function() {
+      return { plugins: [
+        [Babel.availablePlugins["transform-react-jsx"], { runtime: "classic" }],
+        Babel.availablePlugins["transform-react-display-name"]
+      ]};
+    });
+  })();
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: #080808;
+      color: #E8E8E8;
+      font-family: 'Open Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #111; }
+    ::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #D4A843; }
+
+    .bebas { font-family: 'Bebas Neue', cursive; }
+
+    /* Slider */
+    .slider {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 4px; border-radius: 2px;
+      background: #444; outline: none; cursor: pointer;
+    }
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 20px; height: 20px;
+      border-radius: 50%; background: #D4A843; cursor: pointer;
+      border: 2px solid #080808; box-shadow: 0 0 6px rgba(212,168,67,0.5);
+    }
+    .slider::-moz-range-thumb {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: #D4A843; cursor: pointer;
+      border: 2px solid #080808;
+    }
+
+    /* Layout */
+    .container { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+    @media (min-width: 640px) { .container { padding: 0 24px; } }
+
+    .card {
+      background: #111111;
+      border-radius: 12px;
+      border: 1px solid #444;
+      padding: 20px;
+    }
+    .warning-card {
+      border-radius: 12px;
+      border: 1px solid rgba(204,51,51,0.4);
+      padding: 20px;
+      background: linear-gradient(135deg, #1a0a0a 0%, #111111 100%);
+    }
+    .section-heading {
+      font-family: 'Bebas Neue', cursive;
+      font-size: clamp(2.5rem, 8vw, 4.5rem);
+      letter-spacing: 0.04em;
+      line-height: 1;
+      color: white;
+      text-transform: uppercase;
+    }
+    .gold-stat {
+      font-family: 'Bebas Neue', cursive;
+      color: #D4A843;
+      font-size: clamp(2.5rem, 8vw, 4.5rem);
+      line-height: 1;
+      letter-spacing: 0.02em;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    @media (max-width: 600px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .grid-3 { grid-template-columns: 1fr; }
+    }
+    .flex-row { display: flex; gap: 16px; flex-wrap: wrap; }
+    .flex-row > * { flex: 1; min-width: 200px; }
+
+    /* Recharts text override */
+    .recharts-text, .recharts-cartesian-axis-tick-value { fill: #666 !important; font-size: 11px !important; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef } = React;
+    const {
+      AreaChart, Area, LineChart, Line, BarChart, Bar,
+      XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+      ResponsiveContainer, PieChart, Pie, Cell
+    } = Recharts;
+
+    // ═══════════════════════════════════════════════════
+    // CALCULATIONS
+    // ═══════════════════════════════════════════════════
+
+    // PV of growing annuity: PV = PMT/(r-g) * [1 - ((1+g)/(1+r))^n]
+    function nestEggRequired(monthly, portfolioRate, inflationRate, years) {
+      const pmt = monthly * 12;
+      const r = portfolioRate / 100;
+      const g = inflationRate / 100;
+      if (Math.abs(r - g) < 0.0001) return pmt * years;
+      return (pmt / (r - g)) * (1 - Math.pow((1 + g) / (1 + r), years));
+    }
+
+    // futureSpend = monthlySpend * (1+g)^yearsUntilAge
+    function futureMonthlySpend(monthly, inflationRate, currentAge, targetAge) {
+      return monthly * Math.pow(1 + inflationRate / 100, Math.max(0, targetAge - currentAge));
+    }
+
+    // Gross earnings needed at 49% effective net
+    function grossEarningsNeeded(nestEgg) { return nestEgg / 0.49; }
+
+    // Simulate year-by-year depletion
+    function depletionAge(startBalance, monthly, portfolioRate, inflationRate, currentAge) {
+      const r = portfolioRate / 100, g = inflationRate / 100;
+      let bal = startBalance, draw = monthly * 12;
+      for (let age = currentAge; age <= 110; age++) {
+        bal = bal * (1 + r) - draw;
+        draw *= (1 + g);
+        if (bal <= 0) return age;
+      }
+      return 110;
+    }
+
+    // Portfolio projection data for chart
+    function portfolioProjection(nestEgg, currentPortfolio, monthly, portfolioRate, inflationRate, currentAge, lifeExp) {
+      const r = portfolioRate / 100, g = inflationRate / 100;
+      const data = [];
+      let tBal = nestEgg, cBal = currentPortfolio, draw = monthly * 12;
+      for (let age = currentAge; age <= lifeExp; age++) {
+        data.push({ age, target: Math.max(0, tBal), current: Math.max(0, cBal) });
+        tBal = tBal * (1 + r) - draw;
+        cBal = cBal * (1 + r) - draw;
+        draw *= (1 + g);
+      }
+      return data;
+    }
+
+    // Binary search for sustainable monthly draw
+    function sustainableMonthly(startBalance, portfolioRate, inflationRate, years) {
+      const r = portfolioRate / 100, g = inflationRate / 100;
+      let lo = 500, hi = 2000000;
+      for (let i = 0; i < 70; i++) {
+        const mid = (lo + hi) / 2;
+        let bal = startBalance, ann = mid * 12;
+        for (let yr = 0; yr < years; yr++) { bal = bal * (1 + r) - ann; ann *= (1 + g); }
+        if (bal > 0) lo = mid; else hi = mid;
+      }
+      return Math.round((lo + hi) / 2);
+    }
+
+    // FV = PV * (1+r)^n
+    function compoundFV(pv, rate, years) { return pv * Math.pow(1 + rate / 100, years); }
+
+    // Real purchasing power
+    function realPurchasingPower(nominal, rate, years) {
+      return nominal / Math.pow(1 + rate / 100, years);
+    }
+
+    // Sharpe = (return - 5%) / volatility
+    function sharpeRatio(ret, vol) {
+      if (vol === 0) return 0;
+      return (ret - 5) / vol;
+    }
+
+    // Fee drag cost
+    function feeDragCost(size, grossReturn, feeRate, years) {
+      const r = grossReturn / 100, f = feeRate / 100;
+      return size * Math.pow(1 + r, years) - size * Math.pow(1 + r - f, years);
+    }
+
+    // Hedge fund 2+20 net return
+    function hedgeFundNetReturn(grossPct) {
+      const g = grossPct / 100;
+      return (g - 0.02 - Math.max(0, g - 0.05) * 0.2) * 100;
+    }
+
+    // Format helpers
+    function fmt$(n, compact = false) {
+      if (compact) {
+        if (n >= 1e9) return '$' + (n/1e9).toFixed(1) + 'B';
+        if (n >= 1e6) return '$' + (n/1e6).toFixed(1) + 'M';
+        if (n >= 1e3) return '$' + (n/1e3).toFixed(0) + 'K';
+        return '$' + Math.round(n).toLocaleString();
+      }
+      return new Intl.NumberFormat('en-US', { style:'currency', currency:'USD', maximumFractionDigits:0 }).format(n);
+    }
+    function fmtM(n) { return '$' + (n/1e6).toFixed(2) + 'M'; }
+
+    // ═══════════════════════════════════════════════════
+    // SHARED COMPONENTS
+    // ═══════════════════════════════════════════════════
+
+    function AnalogyBox({ children }) {
+      return (
+        <div style={{
+          borderLeft: '4px solid #D4A843',
+          background: '#0D0D0D',
+          color: '#D4A843',
+          padding: '16px 20px',
+          borderRadius: '0 8px 8px 0',
+          fontStyle: 'italic',
+          lineHeight: 1.7,
+          margin: '24px 0',
+          fontSize: '0.9rem',
+        }}>
+          {children}
+        </div>
+      );
+    }
+
+    function SliderRow({ label, value, min, max, step, onChange, format }) {
+      return (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:8 }}>
+            <span style={{ fontSize:'0.75rem', fontWeight:600, color:'#aaa', textTransform:'uppercase', letterSpacing:'0.05em' }}>{label}</span>
+            <span className="bebas" style={{ color:'#D4A843', fontSize:'1.5rem' }}>{format(value)}</span>
+          </div>
+          <input type="range" className="slider" min={min} max={max} step={step} value={value}
+            onChange={e => onChange(Number(e.target.value))} />
+          <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.7rem', marginTop:4, color:'#444' }}>
+            <span>{format(min)}</span><span>{format(max)}</span>
+          </div>
+        </div>
+      );
+    }
+
+    function CourtDivider() {
+      return (
+        <div style={{ position:'relative', height:48, overflow:'hidden', display:'flex', alignItems:'center' }}>
+          <svg viewBox="0 0 800 48" style={{ position:'absolute', inset:0, width:'100%', height:'100%', opacity:0.06 }}>
+            <line x1="400" y1="0" x2="400" y2="48" stroke="#D4A843" strokeWidth="2"/>
+            <circle cx="400" cy="24" r="20" stroke="#D4A843" strokeWidth="2" fill="none"/>
+            <path d="M 150 0 Q 200 24 150 48" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+            <path d="M 650 0 Q 600 24 650 48" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+            <rect x="120" y="8" width="70" height="32" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+            <rect x="610" y="8" width="70" height="32" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+          </svg>
+          <div style={{ width:'100%', height:1, background:'linear-gradient(90deg,transparent,#D4A843 20%,#D4A843 80%,transparent)' }}/>
+        </div>
+      );
+    }
+
+    function SectionLabel({ num, title }) {
+      return (
+        <div style={{ marginBottom:40 }}>
+          <p className="bebas" style={{ color:'#D4A843', letterSpacing:'0.1em', fontSize:'1.1rem', marginBottom:8 }}>Section {num}</p>
+          <h2 className="section-heading">{title}</h2>
+        </div>
+      );
+    }
+
+    function ChartTooltip({ active, payload, label, prefix='Age' }) {
+      if (!active || !payload?.length) return null;
+      return (
+        <div className="card" style={{ padding:'10px 14px', fontSize:'0.75rem', minWidth:120 }}>
+          <p className="bebas" style={{ color:'#D4A843', fontSize:'1.1rem', marginBottom:4 }}>{prefix} {label}</p>
+          {payload.map(p => (
+            <p key={p.name} style={{ color: p.color }}>
+              {p.name}: {fmtM(p.value)}
+            </p>
+          ))}
+        </div>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // NAV
+    // ═══════════════════════════════════════════════════
+
+    const SECTIONS = [
+      { id:'the-problem', label:'The Problem' },
+      
+      { id:'about', label:'About' },
+      { id:'your-number', label:'Everyone Needs a Number' },
+      { id:'hundred-million', label:'The Million Dollar Question' },
+      { id:'compounding', label:'Compounding' },
+      { id:'inflation', label:'Inflation' },
+      { id:'what-are-we-doing', label:'What Are We Doing?' },
+      { id:'portfolio-construction', label:'Building the Portfolio' },
+      { id:'legends-playbook', label:"The Legends' Playbook" },
+      { id:'risk', label:'Risk & Diversification' },
+      { id:'wall-street', label:'Wall Street Reality' },
+      { id:'danger-zone', label:'Danger Zone' },
+      { id:'what-i-offer', label:'What I Offer' },
+      { id:'why-me', label:'Why Me' },
+      { id:'appendix', label:'Appendix' },
+    ];
+
+    function Nav() {
+      const [active, setActive] = useState('your-number');
+      const [open, setOpen] = useState(false);
+
+      useEffect(() => {
+        const obs = new IntersectionObserver(entries => {
+          entries.forEach(e => { if (e.isIntersecting) setActive(e.target.id); });
+        }, { threshold: 0.35 });
+        SECTIONS.forEach(({ id }) => { const el = document.getElementById(id); if (el) obs.observe(el); });
+        return () => obs.disconnect();
+      }, []);
+
+      const scrollTo = id => { document.getElementById(id)?.scrollIntoView({ behavior:'smooth' }); setOpen(false); };
+
+      return (
+        <nav style={{
+          position:'sticky', top:0, zIndex:50, width:'100%',
+          background:'rgba(8,8,8,0.95)', backdropFilter:'blur(12px)',
+          borderBottom:'1px solid #222'
+        }}>
+          <div className="container">
+            {/* Desktop */}
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height:56, gap:8 }}>
+              <span className="bebas" style={{ color:'#D4A843', letterSpacing:'0.1em', fontSize:'1.2rem', whiteSpace:'nowrap' }}>SMART MONEY</span>
+              <div style={{ display:'flex', gap:4, flexWrap:'wrap', justifyContent:'flex-end' }}>
+                {SECTIONS.map(({ id, label }) => (
+                  <button key={id} onClick={() => scrollTo(id)} style={{
+                    padding:'4px 10px', fontSize:'0.65rem', fontWeight:600,
+                    textTransform:'uppercase', letterSpacing:'0.04em',
+                    color: active===id ? '#D4A843' : '#666',
+                    borderBottom: active===id ? '2px solid #D4A843' : '2px solid transparent',
+                    background:'none', border:'none', borderBottom: active===id ? '2px solid #D4A843' : '2px solid transparent',
+                    cursor:'pointer', whiteSpace:'nowrap',
+                  }}>{label}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </nav>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // HERO
+    // ═══════════════════════════════════════════════════
+
+    function Hero() {
+      const [vis, setVis] = useState(false);
+      useEffect(() => { setTimeout(() => setVis(true), 100); }, []);
+
+      return (
+        <div style={{
+          position:'relative', display:'flex', flexDirection:'column',
+          alignItems:'center', justifyContent:'center',
+          padding:'96px 16px',
+          background:'linear-gradient(180deg,#0D0D0D 0%,#080808 100%)',
+          overflow:'hidden',
+        }}>
+          <svg viewBox="0 0 600 400" style={{ position:'absolute', inset:0, width:'100%', height:'100%', opacity:0.04 }} preserveAspectRatio="xMidYMid slice">
+            <rect x="50" y="50" width="500" height="300" stroke="#D4A843" strokeWidth="3" fill="none"/>
+            <line x1="300" y1="50" x2="300" y2="350" stroke="#D4A843" strokeWidth="2"/>
+            <circle cx="300" cy="200" r="60" stroke="#D4A843" strokeWidth="2" fill="none"/>
+            <rect x="50" y="120" width="130" height="160" stroke="#D4A843" strokeWidth="2" fill="none"/>
+            <rect x="420" y="120" width="130" height="160" stroke="#D4A843" strokeWidth="2" fill="none"/>
+            <circle cx="180" cy="200" r="60" stroke="#D4A843" strokeWidth="2" fill="none"/>
+            <circle cx="420" cy="200" r="60" stroke="#D4A843" strokeWidth="2" fill="none"/>
+            <path d="M 50 90 Q 280 200 50 310" stroke="#D4A843" strokeWidth="2" fill="none"/>
+            <path d="M 550 90 Q 320 200 550 310" stroke="#D4A843" strokeWidth="2" fill="none"/>
+          </svg>
+
+          <div style={{ width:64, height:4, background:'#D4A843', borderRadius:2, marginBottom:32 }}/>
+
+          <div style={{
+            textAlign:'center',
+            opacity: vis ? 1 : 0,
+            transform: vis ? 'translateY(0)' : 'translateY(30px)',
+            transition: 'opacity 1s ease, transform 1s ease',
+          }}>
+            <div className="bebas" style={{ fontSize:'clamp(4rem,20vw,11rem)', letterSpacing:'0.06em', lineHeight:1, color:'white' }}>SMART</div>
+            <div className="bebas" style={{
+              fontSize:'clamp(4rem,20vw,11rem)', letterSpacing:'0.06em', lineHeight:1,
+              color:'#D4A843', textShadow:'0 0 80px rgba(212,168,67,0.3)',
+            }}>MONEY</div>
+          </div>
+
+          <p style={{
+            marginTop:32, textAlign:'center', fontWeight:600,
+            textTransform:'uppercase', letterSpacing:'0.15em',
+            fontSize:'0.85rem', color:'#666',
+            opacity: vis ? 1 : 0, transform: vis ? 'translateY(0)' : 'translateY(20px)',
+            transition:'opacity 1s ease 0.3s, transform 1s ease 0.3s',
+          }}>
+            Financial Literacy for Professional Athletes
+          </p>
+
+          <div style={{ marginTop:48, display:'flex', flexDirection:'column', alignItems:'center', gap:8, opacity: vis?1:0, transition:'opacity 1s ease 0.5s' }}>
+            <span style={{ fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.1em', color:'#333' }}>Scroll to explore</span>
+            <div style={{ width:1, height:32, background:'linear-gradient(180deg,#D4A843,transparent)' }}/>
+          </div>
+        </div>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // SECTION — ABOUT CHARLIE BERMAN
+    // ═══════════════════════════════════════════════════
+
+    function SectionTheProblem() {
+      return (
+        <section id="the-problem" style={{ padding:'80px 0', background:'#0A0A0A' }}>
+          <div className="container">
+            <SectionLabel num="00" title="The Problem" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:620, lineHeight:1.8 }}>
+              The money is real. The window is short. Too many players find out too late.
+            </p>
+            <div style={{ marginBottom:40 }}>
+              <div className="card" style={{ borderTop:'3px solid #D4A843', textAlign:'center', padding:'48px 32px', maxWidth:560, margin:'0 auto' }}>
+                <div style={{ fontSize:'3rem', marginBottom:12 }}>🏈</div>
+                <div className="bebas" style={{ fontSize:'4.5rem', color:'#D4A843', lineHeight:1 }}>NFL</div>
+                <div style={{ marginTop:24, marginBottom:24, borderTop:'1px solid #222', borderBottom:'1px solid #222', padding:'24px 0', display:'grid', gridTemplateColumns:'1fr 1fr', gap:24 }}>
+                  <div>
+                    <div style={{ color:'#555', fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:4 }}>Average Career Length</div>
+                    <div className="bebas" style={{ fontSize:'3.5rem', color:'white', lineHeight:1 }}>3.3 years</div>
+                  </div>
+                  <div>
+                    <div style={{ color:'#555', fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:4 }}>Financially Distressed</div>
+                    <div className="bebas" style={{ fontSize:'3.5rem', color:'#D4A843', lineHeight:1 }}>78%</div>
+                    <div style={{ color:'#666', fontSize:'0.75rem', marginTop:4 }}>within 2 years of retirement</div>
+                  </div>
+                </div>
+                <div style={{ color:'#444', fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.08em' }}>Sports Illustrated / NFLPA</div>
+              </div>
+            </div>
+            <div className="card" style={{ background:'linear-gradient(135deg,#1a0800 0%,#111 100%)', border:'1px solid #D4A843', textAlign:'center', padding:'32px' }}>
+              <p className="bebas" style={{ color:'#D4A843', fontSize:'clamp(1.25rem,3vw,2rem)', letterSpacing:'0.03em', margin:0 }}>
+                The window to get this right is narrow. The damage from getting it wrong is permanent.
+              </p>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    function SectionWhatIOffer() {
+      const team = [
+        { role: 'Financial Advisor/Planner', icon: '📈', desc: 'Portfolio strategy & investment execution' },
+        { role: 'Accountant / CPA', icon: '🧾', desc: 'Tax planning, filings & optimization' },
+        { role: 'Estate Attorney', icon: '📋', desc: 'Trusts, wills & generational planning' },
+        { role: 'Insurance Specialist', icon: '🛡', desc: 'Disability, life & liability coverage' },
+      ];
+      return (
+        <section id="what-i-offer" style={{ padding:'80px 0', background:'#080808' }}>
+          <div className="container">
+            <SectionLabel num="CB" title="What I Offer" />
+            <p style={{ color:'#888', marginBottom:48, maxWidth:620, lineHeight:1.8 }}>
+              Think of me as the <strong style={{ color:'white' }}>head coach of your business team</strong>. My role isn't to replace your advisors — it's to make sure they work as a coordinated unit, that you understand every decision being made on your behalf, and that nothing falls through the cracks between the people managing your money.
+            </p>
+            <div className="card" style={{ border:'1px solid #D4A843', background:'linear-gradient(135deg,#1a1200 0%,#111 100%)', marginBottom:32, padding:'32px' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:16, marginBottom:20 }}>
+                <div style={{ fontSize:'2.5rem', lineHeight:1 }}>🏆</div>
+                <div>
+                  <div className="bebas" style={{ color:'white', fontSize:'1.75rem', letterSpacing:'0.04em' }}>Charlie Berman</div>
+                  <div style={{ color:'#D4A843', fontSize:'0.8rem', textTransform:'uppercase', letterSpacing:'0.1em' }}>Head Coach — Business Team</div>
+                </div>
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:16 }}>
+                {team.map(function(t) { return (
+                  <div key={t.role} style={{ background:'#0d0d0d', borderRadius:8, padding:'16px', border:'1px solid #1a1a1a' }}>
+                    <div style={{ fontSize:'1.5rem', marginBottom:8 }}>{t.icon}</div>
+                    <div style={{ color:'white', fontWeight:600, fontSize:'0.85rem', marginBottom:4 }}>{t.role}</div>
+                    <div style={{ color:'#555', fontSize:'0.75rem', lineHeight:1.5 }}>{t.desc}</div>
+                  </div>
+                ); })}
+              </div>
+            </div>
+            <div className="grid-2" style={{ marginBottom:32 }}>
+              <div className="card" style={{ borderLeft:'3px solid #D4A843' }}>
+                <div className="bebas" style={{ color:'#D4A843', fontSize:'1.25rem', letterSpacing:'0.05em', marginBottom:12 }}>Pillar 01 — Coordinate the Team</div>
+                <p style={{ color:'#aaa', lineHeight:1.8, fontSize:'0.9rem', margin:0 }}>
+                  Most financial teams operate in silos. Your CPA files the taxes. Your financial advisor manages the portfolio. Your attorney drafts the documents. But these conversations rarely happen together — and the gaps are where mistakes live. I sit above the team, connect the pieces, and hold every professional accountable.
+                </p>
+              </div>
+              <div className="card" style={{ borderLeft:'3px solid #D4A843' }}>
+                <div className="bebas" style={{ color:'#D4A843', fontSize:'1.25rem', letterSpacing:'0.05em', marginBottom:12 }}>Pillar 02 — Build the Literacy</div>
+                <p style={{ color:'#aaa', lineHeight:1.8, fontSize:'0.9rem', margin:0 }}>
+                  The goal isn't to hand your financial life to someone else and hope for the best. It's to reach a level of understanding where you can ask the right questions, read the right numbers, and know when something doesn't add up. That literacy is the long-term protection no contract can guarantee.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    function SectionWhyMe() {
+      return (
+        <section id="why-me" style={{ padding:'80px 0', background:'#0A0A0A' }}>
+          <div className="container">
+            <SectionLabel num="CB" title="Why Me" />
+            <p style={{ color:'#888', marginBottom:48, maxWidth:620, lineHeight:1.8 }}>
+              There is no shortage of people who want to be part of a player's team. Here is what actually sets this apart.
+            </p>
+            <div className="grid-2" style={{ marginBottom:40 }}>
+              <div className="card">
+                <div className="bebas" style={{ color:'#D4A843', fontSize:'1.25rem', letterSpacing:'0.05em', marginBottom:16 }}>The Pedigree</div>
+                <p style={{ color:'#aaa', lineHeight:1.8, fontSize:'0.9rem', margin:0 }}>
+                  Twenty years operating at institutional scale — real markets, real capital, real cycles. I wasn't on the periphery of finance; I was running exposure and managing risk under pressure. That experience shapes how I simplify complexity, frame decisions, and ask the questions that most don't.
+                </p>
+              </div>
+              <div className="card">
+                <div className="bebas" style={{ color:'#D4A843', fontSize:'1.25rem', letterSpacing:'0.05em', marginBottom:16 }}>Brand Builder</div>
+                <p style={{ color:'#aaa', lineHeight:1.8, fontSize:'0.9rem', margin:0 }}>
+                  I came to this work through relationships, not referrals. Before finance, I was building business frameworks for people at the intersection of fame and money: Renny, the Gstaad Guy, Daddywellness, Tdrew. I understand this world — not because I studied it, but because I lived in it.
+                </p>
+              </div>
+            </div>
+            <div className="card" style={{ background:'linear-gradient(135deg,#1a1200 0%,#111 100%)', border:'1px solid #D4A843', padding:'40px', textAlign:'center' }}>
+              <div className="bebas" style={{ color:'#D4A843', fontSize:'clamp(1rem,2vw,1.25rem)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:16 }}>The Ask</div>
+              <p className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.03em', lineHeight:1.2, margin:'0 0 16px' }}>
+                Allow me to be the financial education layer alongside your existing team.
+              </p>
+              <p style={{ color:'#888', fontSize:'0.9rem', lineHeight:1.8, maxWidth:560, margin:'0 auto 24px' }}>
+                I'm not replacing anyone — I'm making the whole system work better, and making you harder to take advantage of.
+              </p>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:12, justifyContent:'center' }}>
+                {['Derivatives Education','Yield Awareness','Risk Management Education'].map(function(tag) { return (
+                  <span key={tag} style={{ background:'#1a1200', border:'1px solid #D4A843', color:'#D4A843', borderRadius:20, padding:'6px 16px', fontSize:'0.75rem', letterSpacing:'0.08em', textTransform:'uppercase' }}>{tag}</span>
+                ); })}
+              </div>
+
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    function SectionAbout() {
+      return (
+        <section id="about" style={{ padding:'80px 0' }}>
+          <div className="container">
+
+            {/* Header */}
+            <div style={{ marginBottom:48 }}>
+              <p className="bebas" style={{ color:'#D4A843', letterSpacing:'0.1em', fontSize:'1.1rem', marginBottom:8 }}>Who Is This Guy?</p>
+              <div className="bebas" style={{ fontSize:'clamp(2.5rem,8vw,5rem)', letterSpacing:'0.04em', lineHeight:1, color:'white' }}>Charlie Berman</div>
+              <div style={{ width:64, height:3, background:'#D4A843', borderRadius:2, marginTop:16 }}/>
+            </div>
+
+            {/* Three credential cards */}
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))', gap:20, marginBottom:48 }}>
+
+              {/* Wall Street */}
+              <div style={{ borderRadius:14, padding:28, background:'#111', border:'1px solid #D4A84340', position:'relative', overflow:'hidden' }}>
+                <div style={{ position:'absolute', top:-12, right:16, fontFamily:'"Bebas Neue",cursive', fontSize:'7rem', color:'#D4A84308', lineHeight:1, userSelect:'none' }}>20+</div>
+                <div style={{ fontSize:'2rem', marginBottom:16 }}>📈</div>
+                <p className="bebas" style={{ color:'#D4A843', fontSize:'1.3rem', letterSpacing:'0.04em', marginBottom:12 }}>Wall Street Veteran</p>
+                <p style={{ fontSize:'0.85rem', color:'#999', lineHeight:1.9 }}>
+                  20+ year career on Wall Street, running one of the largest derivative books on the Street. Deep expertise across structured products, risk management, and capital markets at institutional scale.
+                </p>
+              </div>
+
+              {/* Self-made */}
+              <div style={{ borderRadius:14, padding:28, background:'#111', border:'1px solid #D4A84340', position:'relative', overflow:'hidden' }}>
+                <div style={{ position:'absolute', top:-12, right:16, fontFamily:'"Bebas Neue",cursive', fontSize:'7rem', color:'#D4A84308', lineHeight:1, userSelect:'none' }}>↑</div>
+                <div style={{ fontSize:'2rem', marginBottom:16 }}>🏗</div>
+                <p className="bebas" style={{ color:'#D4A843', fontSize:'1.3rem', letterSpacing:'0.04em', marginBottom:12 }}>Self-Made</p>
+                <p style={{ fontSize:'0.85rem', color:'#999', lineHeight:1.9 }}>
+                  Started in the back office and worked his way to the front office in record time — learning every layer of the financial system from the ground up. No shortcuts. No silver spoon. Just relentless execution.
+                </p>
+              </div>
+
+              {/* Nightlife */}
+              <div style={{ borderRadius:14, padding:28, background:'#111', border:'1px solid #D4A84340', position:'relative', overflow:'hidden' }}>
+                <div style={{ fontSize:'2rem', marginBottom:16 }}>🤝</div>
+                <p className="bebas" style={{ color:'#D4A843', fontSize:'1.3rem', letterSpacing:'0.04em', marginBottom:12 }}>Where Finance Meets the Game</p>
+                <p style={{ fontSize:'0.85rem', color:'#999', lineHeight:1.9 }}>
+                  Before Wall Street, Charlie built a presence at the intersection of finance and culture. A trusted resource to some of the most recognized names in the creator economy, he helped shape the business strategy and financial foundations of figures including Renny, the Gstaad Guy, Daddywellness, and Tdrew. That same trust — built through genuine friendship and shared experience — is what brought this work to professional athletes.
+                </p>
+              </div>
+
+            </div>
+
+            {/* Head Coach callout */}
+            <div style={{ background:'linear-gradient(135deg,#0d0d0d 0%,#111 100%)', border:'1px solid #D4A84360', borderRadius:14, padding:'32px 36px', marginBottom:20 }}>
+              <p className="bebas" style={{ color:'#D4A843', fontSize:'1.1rem', letterSpacing:'0.1em', marginBottom:12 }}>The Head Coach of Your Financial Life</p>
+              <p style={{ color:'#ccc', lineHeight:1.9, fontSize:'0.9rem', margin:0 }}>
+                There's a gap between what financial teams say and what athletes actually hear. I close it. Financial literacy is a muscle, and I am the ultimate strength and conditioning coach for it.
+              </p>
+            </div>
+
+            {/* Why this matters */}
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:12 }}>
+              {[
+                { stat:'20+', label:'Years on Wall Street' },
+                { stat:'Top 1%', label:'Derivative book size on the Street' },
+                { stat:'Back → Front', label:'Office in record time' },
+                { stat:'Culture', label:'Trusted advisor — Renny, Gstaad Guy, Daddywellness & Tdrew' },
+              ].map(({ stat, label }) => (
+                <div key={label} style={{ borderRadius:10, padding:'18px 20px', background:'#1a1a1a', border:'1px solid #2a2a2a', textAlign:'center' }}>
+                  <div className="bebas" style={{ color:'#D4A843', fontSize:'1.75rem', letterSpacing:'0.04em', lineHeight:1 }}>{stat}</div>
+                  <p style={{ fontSize:'0.75rem', color:'#666', marginTop:6, lineHeight:1.5 }}>{label}</p>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        </section>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // SECTION 1 — YOUR NUMBER
+    // ═══════════════════════════════════════════════════
+
+    function Section1() {
+      const [monthly, setMonthly] = useState(5000);
+      const [age, setAge] = useState(24);
+      const [lifeExp, setLifeExp] = useState(90);
+      const [growthRate, setGrowthRate] = useState(6);
+      const [inflRate, setInflRate] = useState(3);
+      const [currentPort, setCurrentPort] = useState(500000);
+
+      const years = lifeExp - age;
+      const nestEgg = nestEggRequired(monthly, growthRate, inflRate, years);
+      const futureSpend = futureMonthlySpend(monthly, inflRate, age, 60);
+      const grossNeeded = grossEarningsNeeded(nestEgg);
+      const depAge = depletionAge(currentPort, monthly, growthRate, inflRate, age);
+      const chartData = portfolioProjection(nestEgg, currentPort, monthly, growthRate, inflRate, age, lifeExp);
+
+      return (
+        <section id="your-number" style={{ padding:'80px 0' }}>
+          <div className="container">
+            <SectionLabel num="01" title="Everyone Needs a Number" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:600, lineHeight:1.8 }}>
+              What does financial freedom actually cost — for life? Explore the parameters and watch the number update in real time.
+            </p>
+
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))', gap:24, marginBottom:24 }}>
+              {/* Inputs */}
+              <div className="card">
+                <h3 className="bebas" style={{ color:'white', fontSize:'1.5rem', marginBottom:24, letterSpacing:'0.05em' }}>The Parameters</h3>
+                <SliderRow label="Monthly Spend Target" value={monthly} min={5000} max={400000} step={5000} onChange={setMonthly} format={v => fmt$(v,true)} />
+                <SliderRow label="Current Age" value={age} min={18} max={45} step={1} onChange={setAge} format={v => v+' yrs'} />
+                <SliderRow label="Life Expectancy" value={lifeExp} min={70} max={105} step={1} onChange={setLifeExp} format={v => v+' yrs'} />
+                <SliderRow label="Portfolio Growth Rate" value={growthRate} min={3} max={12} step={0.5} onChange={setGrowthRate} format={v => v+'%'} />
+                <SliderRow label="Annual Expense Inflation" value={inflRate} min={1} max={8} step={0.5} onChange={setInflRate} format={v => v+'%'} />
+              </div>
+
+              {/* Outputs */}
+              <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+                {/* Hero stat */}
+                <div style={{
+                  borderRadius:12, padding:24, textAlign:'center',
+                  background:'linear-gradient(135deg,#1a1200 0%,#111 100%)',
+                  border:'1px solid #D4A843',
+                }}>
+                  <p style={{ fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.1em', color:'#666', marginBottom:8 }}>Nest Egg Required</p>
+                  <div className="gold-stat">{fmtM(nestEgg)}</div>
+                  <p style={{ fontSize:'0.7rem', color:'#555', marginTop:8 }}>
+                    at {growthRate}% growth / {inflRate}% inflation / {years} years
+                  </p>
+                </div>
+
+                <div className="grid-2">
+                  <div className="card" style={{ textAlign:'center' }}>
+                    <p style={{ fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.08em', color:'#666', marginBottom:4 }}>Monthly Spend at 60</p>
+                    <div className="bebas" style={{ color:'white', fontSize:'1.5rem' }}>{fmt$(futureSpend,true)}</div>
+                    <p style={{ fontSize:'0.65rem', color:'#555', marginTop:4 }}>inflation-adjusted</p>
+                  </div>
+                  <div className="card" style={{ textAlign:'center' }}>
+                    <p style={{ fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.08em', color:'#666', marginBottom:4 }}>Gross Career Earnings Needed</p>
+                    <div className="bebas" style={{ color:'white', fontSize:'1.5rem' }}>{fmtM(grossNeeded)}</div>
+                    <p style={{ fontSize:'0.65rem', color:'#555', marginTop:4 }}>at 49% net</p>
+                  </div>
+                </div>
+
+                {/* Depletion */}
+                <div className="card">
+                  <h4 style={{ fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.08em', color:'#666', marginBottom:12 }}>Depletion Calculator</h4>
+                  <div style={{ marginBottom:12 }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:8 }}>
+                      <span style={{ fontSize:'0.75rem', color:'#999' }}>Current Portfolio</span>
+                      <span className="bebas" style={{ color:'#D4A843', fontSize:'1.3rem' }}>{fmt$(currentPort,true)}</span>
+                    </div>
+                    <input type="range" className="slider" min={0} max={50000000} step={100000} value={currentPort} onChange={e => setCurrentPort(Number(e.target.value))} />
+                  </div>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                    <span style={{ fontSize:'0.85rem', color:'#888' }}>Money runs out at age:</span>
+                    <span className="bebas" style={{
+                      fontSize:'2rem',
+                      color: depAge >= lifeExp ? '#44AA66' : depAge >= 75 ? '#E07020' : '#CC3333',
+                    }}>
+                      {depAge >= lifeExp ? lifeExp+'+' : depAge}
+                    </span>
+                  </div>
+                  {depAge < lifeExp && (
+                    <p style={{ fontSize:'0.75rem', color:'#CC3333', marginTop:8 }}>
+                      ⚠ Portfolio depletes {lifeExp - depAge} years before life expectancy
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Chart */}
+            <div className="card">
+              <h3 className="bebas" style={{ color:'white', fontSize:'1.5rem', marginBottom:4, letterSpacing:'0.05em' }}>Portfolio Balance Over Time</h3>
+              <p style={{ fontSize:'0.75rem', color:'#555', marginBottom:20 }}>Gold = target nest egg trajectory · Red = your current portfolio</p>
+              <div style={{ height:260 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData} margin={{ top:10, right:10, left:10, bottom:0 }}>
+                    <defs>
+                      <linearGradient id="gT" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#D4A843" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#D4A843" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="gC" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#CC3333" stopOpacity={0.25}/>
+                        <stop offset="95%" stopColor="#CC3333" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#222"/>
+                    <XAxis dataKey="age" stroke="#333" tick={{fill:'#555',fontSize:11}} label={{value:'Age',position:'insideBottom',offset:-2,fill:'#555',fontSize:11}}/>
+                    <YAxis stroke="#333" tick={{fill:'#555',fontSize:11}} tickFormatter={v => '$'+(v/1e6).toFixed(0)+'M'}/>
+                    <Tooltip content={<ChartTooltip />}/>
+                    <Legend wrapperStyle={{fontSize:12}} formatter={v => <span style={{color:v==='target'?'#D4A843':'#CC3333'}}>{v==='target'?'Target Nest Egg':'Current Portfolio'}</span>}/>
+                    <Area type="monotone" dataKey="target" stroke="#D4A843" strokeWidth={2} fill="url(#gT)"/>
+                    <Area type="monotone" dataKey="current" stroke="#CC3333" strokeWidth={2} fill="url(#gC)"/>
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <AnalogyBox>
+              This is your salary cap for life. Every team has one — and teams that blow past it end up cap-strapped with no room to build a roster. Your personal finances work exactly the same way.
+            </AnalogyBox>
+          </div>
+        </section>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // SECTION 2 — $100M QUESTION
+    // ═══════════════════════════════════════════════════
+
+    const DEDUCTIONS = [
+      { label:'Agent Fee (NFLPA cap)', pct:3, color:'#E07020' },
+      { label:'Federal Income Tax', pct:37, color:'#CC3333' },
+      { label:'State Tax (pop. avg)', pct:6.24, color:'#CC5555' },
+      { label:'Jock Tax (away games)', pct:2.5, color:'#CC7777' },
+      { label:'Financial Advisor', pct:1, color:'#888' },
+    ];
+    const CITIES = [
+      { name:'New York (Giants / Jets)', deduction:56.5, color:'#CC3333', flag:'🗽' },
+      { name:'League Average', deduction:50.7, color:'#D4A843', flag:'🏈' },
+      { name:'Miami / Dallas / Houston', deduction:44.5, color:'#44AA66', flag:'🌴' },
+    ];
+
+    function Section2() {
+      const [career, setCareer] = useState(1000000);
+
+      return (
+        <section id="hundred-million" style={{ padding:'80px 0', background:'#0A0A0A' }}>
+          <div className="container">
+            <SectionLabel num="02" title="The Million Dollar Question" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:600, lineHeight:1.8 }}>
+              Signing a multi-million dollar contract is life-changing. But how much does one actually keep — and where one plays makes a massive difference.
+            </p>
+
+            {/* Slider */}
+            <div className="card" style={{ marginBottom:24 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:12 }}>
+                <span style={{ fontSize:'0.75rem', fontWeight:600, color:'#aaa', textTransform:'uppercase', letterSpacing:'0.05em' }}>Career Earnings</span>
+                <span className="bebas" style={{ color:'#D4A843', fontSize:'2rem' }}>{fmtM(career)}</span>
+              </div>
+              <input type="range" className="slider" min={1000000} max={400000000} step={1000000} value={career} onChange={e => setCareer(Number(e.target.value))} />
+              <div style={{ display:'flex', justifyContent:'space-between', fontSize:'0.7rem', marginTop:4, color:'#444' }}>
+                <span>$1M</span><span>$400M</span>
+              </div>
+            </div>
+
+            {/* Waterfall */}
+            <div className="card" style={{ marginBottom:24 }}>
+              <h3 className="bebas" style={{ color:'white', fontSize:'1.5rem', marginBottom:24, letterSpacing:'0.05em' }}>Where The Money Goes</h3>
+              {DEDUCTIONS.map(d => {
+                const amt = career * (d.pct/100);
+                return (
+                  <div key={d.label} style={{ marginBottom:12 }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+                      <span style={{ fontSize:'0.85rem', color:'#ccc' }}>{d.label}</span>
+                      <div style={{ display:'flex', gap:12, alignItems:'baseline' }}>
+                        <span style={{ fontSize:'0.75rem', color:d.color }}>{d.pct}%</span>
+                        <span style={{ fontWeight:600, color:'white', fontSize:'0.85rem' }}>{fmt$(amt,true)}</span>
+                      </div>
+                    </div>
+                    <div style={{ height:8, borderRadius:4, background:'#222', overflow:'hidden' }}>
+                      <div style={{ height:'100%', borderRadius:4, width:`${d.pct}%`, background:d.color, transition:'width 0.4s' }}/>
+                    </div>
+                  </div>
+                );
+              })}
+              <div style={{ marginTop:16, paddingTop:16, borderTop:'1px solid #222' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+                  <span style={{ fontWeight:600, color:'white' }}>Net Take-Home (~49%)</span>
+                  <div style={{ display:'flex', gap:12, alignItems:'baseline' }}>
+                    <span style={{ color:'#D4A843', fontWeight:600 }}>49%</span>
+                    <span className="bebas" style={{ color:'#D4A843', fontSize:'1.5rem' }}>{fmtM(career*0.49)}</span>
+                  </div>
+                </div>
+                <div style={{ height:12, borderRadius:6, background:'#222', overflow:'hidden' }}>
+                  <div style={{ height:'100%', borderRadius:6, width:'49%', background:'linear-gradient(90deg,#D4A843,#EEC96A)', transition:'width 0.4s' }}/>
+                </div>
+              </div>
+            </div>
+
+            {/* City cards */}
+            <h3 className="bebas" style={{ color:'white', fontSize:'1.5rem', marginBottom:16, letterSpacing:'0.05em' }}>City Comparison</h3>
+            <div className="grid-3" style={{ marginBottom:24 }}>
+              {CITIES.map(city => {
+                const net = career * ((100-city.deduction)/100);
+                const monthly = sustainableMonthly(net, 6, 3, 66);
+                return (
+                  <div key={city.name} style={{
+                    borderRadius:12, padding:20, textAlign:'center',
+                    background: city.name==='League Average' ? '#1a1200' : '#111',
+                    border:`1px solid ${city.color}40`,
+                  }}>
+                    <div style={{ fontSize:'1.5rem', marginBottom:8 }}>{city.flag}</div>
+                    <p style={{ fontWeight:600, color:'white', fontSize:'0.85rem', marginBottom:4 }}>{city.name}</p>
+                    <p style={{ fontSize:'0.75rem', color:city.color, marginBottom:12 }}>{city.deduction}% total deductions</p>
+                    <div style={{ borderTop:'1px solid #222', paddingTop:12 }}>
+                      <p style={{ fontSize:'0.7rem', color:'#666', marginBottom:4 }}>Net Take-Home</p>
+                      <div className="bebas" style={{ color:city.color, fontSize:'1.3rem' }}>{fmtM(net)}</div>
+                      <p style={{ fontSize:'0.7rem', color:'#666', marginTop:8, marginBottom:4 }}>Sustainable Monthly</p>
+                      <div className="bebas" style={{ color:'#D4A843', fontSize:'1.3rem' }}>{fmt$(monthly,true)}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Gap */}
+            <div style={{ borderRadius:12, padding:24, textAlign:'center', background:'#0D0D0D', border:'1px solid #D4A843', marginBottom:24 }}>
+              <p style={{ fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.1em', color:'#555', marginBottom:8 }}>NY vs Miami/Dallas/SA Gap</p>
+              <div className="bebas" style={{ color:'#D4A843', fontSize:'clamp(1.75rem,6vw,3rem)' }}>
+                {fmt$(career*(1-0.445) - career*(1-0.565), true)} difference
+              </div>
+              <p style={{ fontSize:'0.7rem', color:'#555', marginTop:8 }}>on a {fmtM(career)} contract</p>
+            </div>
+
+            <AnalogyBox>
+              The gap between signing with the Giants vs. the Cowboys on the same career isn't a football decision. It's a financial asset class hiding inside the contract negotiation.
+            </AnalogyBox>
+          </div>
+        </section>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // SECTION 3 — COMPOUNDING
+    // ═══════════════════════════════════════════════════
+
+    function Section3() {
+      const [start, setStart] = useState(1000000);
+      const [years, setYears] = useState(30);
+
+      const data = Array.from({ length: years+1 }, (_, i) => ({
+        year: i,
+        r6: compoundFV(start, 6, i),
+        r8: compoundFV(start, 8, i),
+        r10: compoundFV(start, 10, i),
+      }));
+
+      const at24 = compoundFV(start, 8, 30);
+      const at34 = compoundFV(start, 8, 20);
+      const delayCost = at24 - at34;
+
+      return (
+        <section id="compounding" style={{ padding:'80px 0' }}>
+          <div className="container">
+            <SectionLabel num="03" title="Compounding" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:600, lineHeight:1.8 }}>
+              The eighth wonder of the world. Money working for you, around the clock — and the earlier you start, the more violent the growth.
+            </p>
+            <div style={{ marginTop:16, borderRadius:10, padding:'14px 18px', background:'#1A1A1A', border:'1px solid #333', display:'flex', gap:12, alignItems:'flex-start' }}>
+              <span style={{ fontSize:'1.2rem', flexShrink:0 }}>💡</span>
+              <p style={{ fontSize:'0.85rem', color:'#aaa', lineHeight:1.8, margin:0 }}>
+                <span style={{ color:'#D4A843', fontWeight:700 }}>What is compounding?</span> It's when your money earns a return — and then that return starts earning its own return. You make money on your money. Year after year, the number snowballs. The longer you leave it, the bigger it gets. The earlier you start, the less work you have to do.
+              </p>
+            </div>
+            <p style={{ display:'none' }}>
+            </p>
+
+            <div className="card" style={{ marginBottom:24 }}>
+              <div className="grid-2">
+                <SliderRow label="Starting Investment" value={start} min={100000} max={10000000} step={100000} onChange={setStart} format={v => fmt$(v,true)} />
+                <SliderRow label="Time Horizon" value={years} min={5} max={50} step={1} onChange={setYears} format={v => v+' years'} />
+              </div>
+            </div>
+
+            <div className="grid-3" style={{ marginBottom:24 }}>
+              {[{r:6,c:'#E8E8E8',l:'Conservative'},{r:8,c:'#D4A843',l:'Moderate'},{r:10,c:'#44AA66',l:'Aggressive'}].map(({r,c,l}) => {
+                const fv = compoundFV(start, r, years);
+                return (
+                  <div key={r} className="card" style={{ textAlign:'center' }}>
+                    <p style={{ fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.08em', color:c, marginBottom:4 }}>{r}% — {l}</p>
+                    <div className="bebas" style={{ color:c, fontSize:'1.75rem' }}>{fmtM(fv)}</div>
+                    <p style={{ fontSize:'0.7rem', color:'#555', marginTop:4 }}>{(fv/start).toFixed(1)}× growth</p>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="card" style={{ marginBottom:24 }}>
+              <div style={{ height:280 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={data} margin={{ top:10, right:10, left:10, bottom:0 }}>
+                    <defs>
+                      <linearGradient id="g6" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#E8E8E8" stopOpacity={0.15}/><stop offset="95%" stopColor="#E8E8E8" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="g8" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#D4A843" stopOpacity={0.25}/><stop offset="95%" stopColor="#D4A843" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="g10" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#44AA66" stopOpacity={0.25}/><stop offset="95%" stopColor="#44AA66" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#222"/>
+                    <XAxis dataKey="year" stroke="#333" tick={{fill:'#555',fontSize:11}} label={{value:'Years',position:'insideBottom',offset:-2,fill:'#555',fontSize:11}}/>
+                    <YAxis stroke="#333" tick={{fill:'#555',fontSize:11}} tickFormatter={v => '$'+(v/1e6).toFixed(0)+'M'}/>
+                    <Tooltip contentStyle={{background:'#111',border:'1px solid #444',borderRadius:8}} labelFormatter={v=>`Year ${v}`} formatter={v=>[fmtM(v),'']}/>
+                    <Legend wrapperStyle={{fontSize:12}} formatter={v => ({r6:'6% Return',r8:'8% Return',r10:'10% Return'}[v]||v)}/>
+                    <Area type="monotone" dataKey="r6" stroke="#E8E8E8" strokeWidth={2} fill="url(#g6)"/>
+                    <Area type="monotone" dataKey="r8" stroke="#D4A843" strokeWidth={2} fill="url(#g8)"/>
+                    <Area type="monotone" dataKey="r10" stroke="#44AA66" strokeWidth={2} fill="url(#g10)"/>
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div style={{ borderRadius:12, padding:24, textAlign:'center', background:'#0D0D0D', border:'1px solid #D4A843', marginBottom:8 }}>
+              <p style={{ fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.1em', color:'#555', marginBottom:8 }}>
+                Cost of Waiting 10 Years · {fmt$(start,true)} · 8% · 30 yrs
+              </p>
+              <div className="bebas" style={{ color:'#CC3333', fontSize:'clamp(2rem,7vw,3.5rem)' }}>
+                -{fmt$(delayCost,true)} lost
+              </div>
+              <p style={{ fontSize:'0.75rem', color:'#555', marginTop:8 }}>
+                Age 24: {fmtM(at24)} · Age 34: {fmtM(at34)}
+              </p>
+            </div>
+
+            <AnalogyBox>
+              LeBron didn't become LeBron in one season. Every rep compounded on the one before. A 22-year-old investing {fmt$(start,true)} today has 45 years of compounding ahead. A 40-year-old has 25. That gap is worth millions — and you cannot buy those years back.
+            </AnalogyBox>
+          </div>
+        </section>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // SECTION 4 — INFLATION
+    // ═══════════════════════════════════════════════════
+
+    const INF_RATES = [
+      { rate:2, label:'2%', highlight:false },
+      { rate:3, label:'3%', highlight:true, note:'40-yr US avg' },
+      { rate:4, label:'4%', highlight:false },
+      { rate:6.5, label:'6.5%', highlight:false },
+    ];
+    const REAL_WORLD = [
+      { label:'NFL City 2-bed Rent', before:'$1,800/mo', after:'$3,600/mo', period:'2004–2024' },
+      { label:'Avg. Luxury Car (MB · BMW)', before:'$37,000', after:'$74,000', period:'2004–2024' },
+      { label:'Family Health Insurance', before:'$10,000/yr', after:'$23,000/yr', period:'2004–2024' },
+      { label:'Private School Tuition', before:'$18,000/yr', after:'$42,000/yr', period:'2004–2024' },
+    ];
+
+    function Section4() {
+      const [visible, setVisible] = useState(false);
+      const ref = useRef(null);
+      useEffect(() => {
+        const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVisible(true); }, { threshold:0.3 });
+        if (ref.current) obs.observe(ref.current);
+        return () => obs.disconnect();
+      }, []);
+
+      return (
+        <section id="inflation" style={{ padding:'80px 0', background:'#0A0A0A' }}>
+          <div className="container">
+            <SectionLabel num="04" title="Inflation" />
+            <p style={{ color:'#888', marginBottom:16, maxWidth:600, lineHeight:1.8 }}>
+              A million dollars sounds permanent. Inflation makes it temporary. Watch what happens to your purchasing power over time.
+            </p>
+            <div style={{ marginBottom:40, borderRadius:10, padding:'16px 20px', background:'#1a0a0a', border:'1px solid #CC333360', maxWidth:600 }}>
+              <p style={{ fontSize:'0.8rem', lineHeight:1.8, margin:0, color:'#bbb' }}>
+                <span style={{ color:'#CC3333', fontWeight:700 }}>Inflation is compounding's arch-nemesis.</span>{' '}
+                Compounding quietly grows your money. Inflation quietly shrinks what it's worth. If your returns don't outpace inflation, you're losing ground — in slow motion.
+              </p>
+            </div>
+
+            {/* Table */}
+            <div className="card" style={{ marginBottom:24, overflowX:'auto' }} ref={ref}>
+              <h3 className="bebas" style={{ color:'white', fontSize:'1.5rem', marginBottom:4, letterSpacing:'0.05em' }}>Purchasing Power of $1,000,000</h3>
+              <p style={{ fontSize:'0.75rem', color:'#555', marginBottom:20 }}>Real value after inflation erodes it</p>
+              <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'0.85rem' }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign:'left', padding:'8px 12px', color:'#555', fontWeight:600, fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.05em' }}>Rate</th>
+                    {[0,10,20,30].map(yr => <th key={yr} style={{ textAlign:'right', padding:'8px 12px', color:'#555', fontWeight:600, fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.05em' }}>{yr===0?'Today':yr+' yrs'}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {INF_RATES.map(({ rate, label, highlight, note }) => (
+                    <tr key={rate} style={{ borderTop:'1px solid '+(highlight?'#D4A84330':'#1a1a1a'), background:highlight?'#1a1200':'transparent' }}>
+                      <td style={{ padding:'12px', fontWeight:600, color:highlight?'#D4A843':'#e8e8e8' }}>
+                        {label}
+                        {note && <span style={{ marginLeft:8, fontSize:'0.65rem', padding:'2px 6px', borderRadius:4, background:'#D4A84330', color:'#D4A843' }}>{note}</span>}
+                      </td>
+                      {[0,10,20,30].map(yr => {
+                        const val = realPurchasingPower(1000000, rate, yr);
+                        const pct = (val/1e6*100).toFixed(0);
+                        return (
+                          <td key={yr} style={{ textAlign:'right', padding:'12px' }}>
+                            <span style={{ fontWeight:600, color: yr===0?'#e8e8e8':yr<=10?'#E07020':yr<=20?'#CC5533':'#CC3333' }}>
+                              {fmt$(visible ? val : val, true)}
+                            </span>
+                            {yr > 0 && <span style={{ display:'block', fontSize:'0.65rem', color:'#555' }}>{pct}¢ on $</span>}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Real world */}
+            <h3 className="bebas" style={{ color:'white', fontSize:'1.5rem', marginBottom:16, letterSpacing:'0.05em' }}>Real World: 20 Years of Price Increases</h3>
+            <div className="grid-2" style={{ marginBottom:24 }}>
+              {REAL_WORLD.map(item => (
+                <div key={item.label} className="card">
+                  <p style={{ fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.08em', color:'#555', marginBottom:8 }}>{item.label}</p>
+                  <div style={{ display:'flex', alignItems:'center', gap:16 }}>
+                    <div style={{ textAlign:'center' }}>
+                      <p style={{ fontSize:'0.65rem', color:'#666', marginBottom:4 }}>2004</p>
+                      <div className="bebas" style={{ color:'white', fontSize:'1.2rem' }}>{item.before}</div>
+                    </div>
+                    <div style={{ flex:1, textAlign:'center', color:'#D4A843', fontSize:'1.2rem' }}>→</div>
+                    <div style={{ textAlign:'center' }}>
+                      <p style={{ fontSize:'0.65rem', color:'#666', marginBottom:4 }}>2024</p>
+                      <div className="bebas" style={{ color:'#CC3333', fontSize:'1.2rem' }}>{item.after}</div>
+                    </div>
+                  </div>
+                  <p style={{ fontSize:'0.65rem', color:'#555', marginTop:8, textAlign:'right' }}>100% increase · {item.period}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Formula */}
+            <div style={{ borderRadius:12, padding:24, background:'#0D0D0D', border:'1px solid #444' }}>
+              <h3 className="bebas" style={{ color:'white', fontSize:'1.5rem', marginBottom:20, letterSpacing:'0.05em' }}>The Real Return Formula</h3>
+              <div style={{ display:'flex', gap:16, alignItems:'center', justifyContent:'center', flexWrap:'wrap' }}>
+                <div className="card" style={{ textAlign:'center', minWidth:100, flex:1 }}>
+                  <p style={{ fontSize:'0.65rem', color:'#666', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>Portfolio Return</p>
+                  <div className="bebas" style={{ color:'white', fontSize:'2rem' }}>6%</div>
+                </div>
+                <span className="bebas" style={{ color:'#444', fontSize:'2.5rem' }}>−</span>
+                <div className="card" style={{ textAlign:'center', minWidth:100, flex:1, borderColor:'#CC333340' }}>
+                  <p style={{ fontSize:'0.65rem', color:'#666', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>Inflation Rate</p>
+                  <div className="bebas" style={{ color:'#CC3333', fontSize:'2rem' }}>3%</div>
+                </div>
+                <span className="bebas" style={{ color:'#444', fontSize:'2.5rem' }}>=</span>
+                <div style={{ borderRadius:12, padding:16, textAlign:'center', background:'#1a1200', border:'1px solid #D4A843', minWidth:100, flex:1 }}>
+                  <p style={{ fontSize:'0.65rem', color:'#666', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>Real Return</p>
+                  <div className="bebas" style={{ color:'#D4A843', fontSize:'2rem' }}>3%</div>
+                </div>
+              </div>
+              <p style={{ textAlign:'center', fontSize:'0.85rem', color:'#666', marginTop:20 }}>
+                At 3% inflation, a 6% portfolio only grows <span style={{ color:'#D4A843', fontWeight:600 }}>3% in real terms</span>. Your "growth" is half illusion.
+              </p>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // SECTION 5 — RISK & DIVERSIFICATION
+    // ═══════════════════════════════════════════════════
+
+    const VOLATILE_DATA = [
+      {yr:1,a:1000,b:1000},{yr:2,a:1150,b:1100},{yr:3,a:690,b:1210},
+      {yr:4,a:1035,b:1331},{yr:5,a:1450,b:1464},{yr:6,a:870,b:1610},
+      {yr:7,a:1305,b:1771},{yr:8,a:1900,b:1948},{yr:9,a:1140,b:2143},{yr:10,a:1710,b:2358},
+    ];
+    const DRAWDOWN_DATA = [
+      {m:0,v:1000},{m:3,v:900},{m:6,v:750},{m:9,v:600},{m:12,v:580},
+      {m:15,v:620},{m:18,v:700},{m:24,v:830},{m:30,v:970},{m:36,v:1000},
+    ];
+    const ALLOC_DEFS = [
+      { key:'usEquity', label:'U.S. Equities', role:'Your starting five', color:'#D4A843' },
+      { key:'intlEquity', label:'Intl Equities', role:'Overseas depth', color:'#EEC96A' },
+      { key:'fixedIncome', label:'Fixed Income', role:'Lockdown defender', color:'#4488CC' },
+      { key:'realEstate', label:'Real Estate', role:'The big man', color:'#44AA66' },
+      { key:'alternatives', label:'Alternatives', role:'Sixth man spark', color:'#E07020' },
+      { key:'cash', label:'Cash', role:'Bench depth', color:'#888' },
+    ];
+
+    function ExpandCard({ title, children }) {
+      const [open, setOpen] = useState(false);
+      return (
+        <div className="card" style={{ marginBottom:16, cursor:'pointer' }} onClick={() => setOpen(o => !o)}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            <h4 className="bebas" style={{ color:'white', fontSize:'1.3rem', letterSpacing:'0.05em' }}>{title}</h4>
+            <span className="bebas" style={{ color:'#D4A843', fontSize:'1.75rem' }}>{open?'−':'+'}</span>
+          </div>
+          {open && <div style={{ marginTop:16 }} onClick={e => e.stopPropagation()}>{children}</div>}
+        </div>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // SECTION 4B — WHAT ARE WE DOING?
+    // ═══════════════════════════════════════════════════
+
+    function SectionWhatAreWeDoing() {
+      return (
+        <section id="what-are-we-doing" style={{ padding:'80px 0', background:'#0A0A0A' }}>
+          <div className="container">
+            <SectionLabel num="05" title="What Are We Doing?" />
+            <p style={{ color:'#888', marginBottom:48, maxWidth:640, lineHeight:1.9 }}>
+              Financial goals don't get built on good intentions — they get built on literacy. Strategy, sizing, timing, and risk profile — these are the prerequisites. Most athletes delegate that power without realizing it. Literacy is what demands accountability from the people who hold it.
+            </p>
+
+            {/* Three inputs → intersection visual */}
+            <div style={{ marginBottom:48 }}>
+              <p style={{ fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.12em', color:'#555', marginBottom:24, textAlign:'center' }}>The three forces that shape any strategy</p>
+
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:16, marginBottom:32 }}>
+                {[
+                  { icon:'💸', title:'Spending Requirements', desc:'What does life actually cost — today and in the future? A monthly number sets the floor for everything else.', color:'#E07020' },
+                  { icon:'🏦', title:'Saving Goals', desc:'How much needs to be protected and grown? The nest egg target determines how hard the money has to work.', color:'#D4A843' },
+                  { icon:'📈', title:'Investment Strategy', desc:'How capital is allocated — which asset classes, the sizing, the timing — must be built around the first two. Not the other way around.', color:'#4488CC' },
+                ].map(({ icon, title, desc, color }) => (
+                  <div key={title} style={{ borderRadius:12, padding:24, background:'#111', border:`1px solid ${color}40`, textAlign:'center' }}>
+                    <div style={{ fontSize:'2rem', marginBottom:12 }}>{icon}</div>
+                    <p style={{ fontFamily:'"Bebas Neue",cursive', fontSize:'1.2rem', color, letterSpacing:'0.04em', marginBottom:10 }}>{title}</p>
+                    <p style={{ fontSize:'0.8rem', color:'#888', lineHeight:1.8 }}>{desc}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Convergence arrow */}
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:32 }}>
+                <div style={{ flex:1, height:1, background:'linear-gradient(90deg,transparent,#444)' }}/>
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
+                  <span style={{ fontSize:'1.5rem', color:'#D4A843' }}>↓</span>
+                  <span style={{ fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.1em', color:'#555' }}>The intersection</span>
+                </div>
+                <div style={{ flex:1, height:1, background:'linear-gradient(90deg,#444,transparent)' }}/>
+              </div>
+
+              {/* Three outputs */}
+              <div style={{ borderRadius:14, padding:32, background:'linear-gradient(135deg,#1a1200 0%,#111 100%)', border:'1px solid #D4A843' }}>
+                <p style={{ textAlign:'center', fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.12em', color:'#888', marginBottom:24 }}>Before a single dollar moves, three things must be defined:</p>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:16 }}>
+                  {[
+                    { num:'01', label:'Investment Goals', desc:'Specific, measurable targets tied directly to the lifestyle number and timeline.' },
+                    { num:'02', label:'Risk Profile', desc:'How much volatility an investor can stomach — and afford — without derailing the plan.' },
+                    { num:'03', label:'Asset Allocation Strategy', desc:'The distribution of asset classes calibrated to pursue the target return at an acceptable level of risk.' },
+                  ].map(({ num, label, desc }) => (
+                    <div key={num} style={{ textAlign:'center', padding:'16px 12px' }}>
+                      <div style={{ fontFamily:'"Bebas Neue",cursive', fontSize:'2.5rem', color:'#D4A843', lineHeight:1, marginBottom:8 }}>{num}</div>
+                      <p style={{ fontFamily:'"Bebas Neue",cursive', fontSize:'1.1rem', color:'white', letterSpacing:'0.04em', marginBottom:8 }}>{label}</p>
+                      <p style={{ fontSize:'0.78rem', color:'#777', lineHeight:1.7 }}>{desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ borderLeft:'4px solid #D4A843', background:'#0D0D0D', color:'#D4A843', padding:'16px 20px', borderRadius:'0 8px 8px 0', fontStyle:'italic', lineHeight:1.7, fontSize:'0.9rem' }}>
+              Most athletes walk into an investment meeting and let the advisor set the agenda. These three definitions are how one walks in owning it.
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // SECTION — BUILDING THE PORTFOLIO
+    // ═══════════════════════════════════════════════════
+
+    const PORTFOLIO_STEPS = [
+      {
+        num: '01',
+        title: 'Start With A Number',
+        body: 'Everything begins with Section 1. The monthly spend target, life expectancy, and inflation rate determine the nest egg required. That number is the destination — the portfolio is the vehicle.',
+        color: '#D4A843',
+        icon: '🎯',
+      },
+      {
+        num: '02',
+        title: 'Define A Required Return',
+        body: 'Once the nest egg is defined, the required annual return can be calculated. A $30M target over 20 years requires a very different return than the same target over 35 years.',
+        color: '#EEC96A',
+        icon: '📐',
+      },
+      {
+        num: '03',
+        title: 'Establish A Risk Tolerance',
+        body: 'How much volatility can one handle — emotionally and financially? A portfolio that swings 30% in a bad year might be mathematically efficient but psychologically unsustainable. Risk tolerance sets the guardrails.',
+        color: '#4488CC',
+        icon: '🛡',
+      },
+      {
+        num: '04',
+        title: 'Select The Asset Classes',
+        body: 'With a required return and a risk tolerance defined, the advisor constructs the mix of equities, fixed income, real estate, and alternatives calibrated to deliver the target return within the risk band.',
+        color: '#44AA66',
+        icon: '🧱',
+      },
+      {
+        num: '05',
+        title: 'Diversify Within Each Class',
+        body: 'No single stock, sector, or geography. Within each asset class, exposure is spread — domestic and international, large and small cap, short and long duration. Diversification is the only free lunch in investing.',
+        color: '#E07020',
+        icon: '🌐',
+      },
+      {
+        num: '06',
+        title: 'Review, Rebalance, Repeat',
+        body: 'Markets move fast. Your team should be able to move with them. Allocation and rebalancing isn\'t a once-a-year checkbox — it\'s an active, ongoing discipline. Understanding when and why the portfolio shifts is what keeps the team accountable.',
+        color: '#888',
+        icon: '🔄',
+      },
+    ];
+
+    const SAMPLE_ALLOC = [
+      { label:'U.S. Equities', pct:40, color:'#D4A843', role:'Growth engine' },
+      { label:'Intl Equities', pct:15, color:'#EEC96A', role:'Global diversification' },
+      { label:'Fixed Income', pct:20, color:'#4488CC', role:'Stability & income' },
+      { label:'Real Estate', pct:10, color:'#44AA66', role:'Inflation hedge' },
+      { label:'Alternatives', pct:10, color:'#E07020', role:'Uncorrelated returns' },
+      { label:'Cash', pct:5, color:'#888', role:'Liquidity buffer' },
+    ];
+
+    function SectionPortfolioConstruction() {
+      return (
+        <section id="portfolio-construction" style={{ padding:'80px 0' }}>
+          <div className="container">
+            <SectionLabel num="06" title="Building the Portfolio" />
+            <p style={{ color:'#888', marginBottom:48, maxWidth:640, lineHeight:1.9 }}>
+              Knowing the number is only half the equation. Here is an illustrative framework showing how investors typically translate a financial target into a portfolio — tailored to individual goals, not a generic template.
+            </p>
+
+            {/* Six-step process */}
+            <div style={{ marginBottom:56 }}>
+              <p style={{ fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.12em', color:'#555', marginBottom:24 }}>The six-step construction process</p>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))', gap:16 }}>
+                {PORTFOLIO_STEPS.map(({ num, title, body, color, icon }) => (
+                  <div key={num} style={{ borderRadius:12, padding:22, background:'#111', border:`1px solid ${color}30` }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
+                      <span style={{ fontSize:'1.3rem' }}>{icon}</span>
+                      <div style={{ fontFamily:'"Bebas Neue",cursive', fontSize:'1rem', color, letterSpacing:'0.05em' }}>{num} — {title}</div>
+                    </div>
+                    <p style={{ fontSize:'0.8rem', color:'#888', lineHeight:1.8, margin:0 }}>{body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+
+
+            <div style={{ borderLeft:'4px solid #D4A843', background:'#0D0D0D', color:'#D4A843', padding:'16px 20px', borderRadius:'0 8px 8px 0', fontStyle:'italic', lineHeight:1.7, fontSize:'0.9rem' }}>
+              A great portfolio isn't the one with the highest return. It's the one built to last through a crash, a contract year, and a lifestyle change — and still reach the target number at the end.
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // SECTION — THE LEGENDS' PLAYBOOK
+    // ═══════════════════════════════════════════════════
+
+    const LEGENDS = [
+      {
+        name: 'Warren Buffett',
+        title: 'The Oracle of Omaha',
+        model: '90 / 10',
+        quote: '"Put 90% in a very low-cost S&P 500 index fund and 10% in short-term government bonds. I believe the long-term results will be superior to those attained by most investors who employ high-fee managers."',
+        source: '2013 Berkshire Hathaway Shareholder Letter',
+        thesis: 'Own all of American business at the lowest possible cost. Fees compound against you just as returns compound for you.',
+        alloc: [
+          { label:'S&P 500 Index', pct:90, color:'#D4A843' },
+          { label:'Short-Term Gov\'t Bonds', pct:10, color:'#4488CC' },
+        ],
+        color: '#D4A843',
+      },
+      {
+        name: 'Ray Dalio',
+        title: 'Bridgewater Associates',
+        model: 'All Weather',
+        quote: '"If you can reduce your risk without reducing your return, that is the Holy Grail of Investing. Real diversification means owning things that behave differently from each other."',
+        source: 'Principles & Bridgewater research',
+        thesis: 'Balance risk — not dollars — across assets built for every economic environment: rising growth, falling growth, rising inflation, falling inflation.',
+        alloc: [
+          { label:'US Equities', pct:30, color:'#D4A843' },
+          { label:'Long-Term Bonds', pct:40, color:'#4488CC' },
+          { label:'Intermediate Bonds', pct:15, color:'#6699CC' },
+          { label:'Gold', pct:7.5, color:'#EEC96A' },
+          { label:'Commodities', pct:7.5, color:'#E07020' },
+        ],
+        color: '#4488CC',
+      },
+      {
+        name: 'David Swensen',
+        title: 'Yale Endowment',
+        model: 'Diversified Passive',
+        quote: '"Your odds of beating the market in an actively managed mutual fund are less than one in 100. Don\'t look for the needle. Own the haystack — in six asset classes, with low-cost index funds."',
+        source: 'Unconventional Success (2005)',
+        thesis: 'Six asset classes — US stocks, foreign developed, emerging markets, REITs, Treasuries, TIPS — all passive, all low-cost. Asset allocation is the only decision that matters.',
+        alloc: [
+          { label:'US Stocks', pct:30, color:'#D4A843' },
+          { label:'Foreign Developed', pct:15, color:'#EEC96A' },
+          { label:'Emerging Markets', pct:10, color:'#E07020' },
+          { label:'REITs', pct:20, color:'#44AA66' },
+          { label:'US Treasuries', pct:15, color:'#4488CC' },
+          { label:'TIPS', pct:10, color:'#6699CC' },
+        ],
+        color: '#44AA66',
+      },
+      {
+        name: 'John Bogle',
+        title: 'Founder of Vanguard',
+        model: 'Total Market + Age Rule',
+        quote: '"Don\'t look for the needle in the haystack. Just buy the haystack. Time is your friend; impulse is your enemy. Costs matter — over a lifetime, fees can destroy 30–40% of your ending portfolio value."',
+        source: 'The Little Book of Common Sense Investing',
+        thesis: 'Own the entire stock market via one total-market index fund. Hold bonds equal to your age. Never trade, never chase returns, never pay high fees.',
+        alloc: [
+          { label:'Total Market Index', pct:70, color:'#D4A843' },
+          { label:'Bond Index (age-based)', pct:30, color:'#4488CC' },
+        ],
+        color: '#EEC96A',
+      },
+    ];
+
+    function SectionLegendsPlaybook() {
+      const [active, setActive] = useState(0);
+      const legend = LEGENDS[active];
+
+      return (
+        <section id="legends-playbook" style={{ padding:'80px 0', background:'#0A0A0A' }}>
+          <div className="container">
+            <SectionLabel num="07" title="The Legends' Playbook" />
+            <p style={{ color:'#888', marginBottom:48, maxWidth:640, lineHeight:1.9 }}>
+              The greatest investors in history each arrived at a portfolio philosophy through decades of real-world experience. Here is what they actually do — and the principles they say underpin long-term wealth building.
+            </p>
+
+            {/* Selector tabs */}
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:32 }}>
+              {LEGENDS.map((l, i) => (
+                <button key={l.name} onClick={() => setActive(i)} style={{
+                  padding:'8px 14px', borderRadius:6, cursor:'pointer', fontWeight:600,
+                  fontSize:'0.75rem', textTransform:'uppercase', letterSpacing:'0.04em',
+                  background: active===i ? l.color : '#1a1a1a',
+                  color: active===i ? '#080808' : '#666',
+                  border: `1px solid ${active===i ? l.color : '#333'}`,
+                  transition:'all 0.2s',
+                }}>
+                  {l.name.split(' ')[1] || l.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Active legend card */}
+            <div style={{ borderRadius:14, overflow:'hidden', border:`1px solid ${legend.color}40` }}>
+              {/* Header */}
+              <div style={{ padding:'24px 28px', background:`linear-gradient(135deg, ${legend.color}15 0%, #111 100%)`, borderBottom:`1px solid ${legend.color}30` }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:12 }}>
+                  <div>
+                    <div style={{ fontFamily:'"Bebas Neue",cursive', fontSize:'clamp(1.5rem,4vw,2.2rem)', color:'white', letterSpacing:'0.04em', lineHeight:1 }}>{legend.name}</div>
+                    <div style={{ fontSize:'0.8rem', color:legend.color, marginTop:4, fontWeight:600 }}>{legend.title}</div>
+                  </div>
+                  <div style={{ borderRadius:8, padding:'6px 16px', background:legend.color, display:'inline-block' }}>
+                    <span style={{ fontFamily:'"Bebas Neue",cursive', fontSize:'1.1rem', color:'#080808', letterSpacing:'0.06em' }}>{legend.model}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div style={{ padding:'28px', background:'#111' }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))', gap:28 }}>
+                  {/* Left: thesis + quote */}
+                  <div>
+                    <p style={{ fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.1em', color:'#555', marginBottom:10 }}>Core Thesis</p>
+                    <p style={{ fontSize:'0.9rem', color:'#ccc', lineHeight:1.8, marginBottom:20 }}>{legend.thesis}</p>
+
+                    <div style={{ borderLeft:`3px solid ${legend.color}`, paddingLeft:14, marginBottom:legend.warning ? 16 : 0 }}>
+                      <p style={{ fontSize:'0.82rem', fontStyle:'italic', color:'#aaa', lineHeight:1.8, marginBottom:8 }}>{legend.quote}</p>
+                      <p style={{ fontSize:'0.68rem', color:'#555' }}>— {legend.source}</p>
+                    </div>
+
+                    {legend.warning && (
+                      <div style={{ marginTop:16, borderRadius:8, padding:'10px 14px', background:'#1a0a0a', border:'1px solid #CC333350', fontSize:'0.78rem', color:'#CC7777' }}>
+                        {legend.warning}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right: allocation visual */}
+                  <div>
+                    <p style={{ fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.1em', color:'#555', marginBottom:16 }}>Portfolio Allocation</p>
+                    <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+                      {legend.alloc.map(({ label, pct, color }) => (
+                        <div key={label}>
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:6 }}>
+                            <span style={{ fontSize:'0.82rem', color:'#ccc' }}>{label}</span>
+                            <span style={{ fontFamily:'"Bebas Neue",cursive', color, fontSize:'1.3rem' }}>{pct}%</span>
+                          </div>
+                          <div style={{ height:8, borderRadius:4, background:'#222', overflow:'hidden' }}>
+                            <div style={{ height:'100%', borderRadius:4, background:color, width:`${pct}%`, transition:'width 0.5s ease' }}/>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Consensus callout */}
+            <div style={{ marginTop:40, borderRadius:12, padding:'24px 28px', background:'#111', border:'1px solid #333' }}>
+              <p style={{ fontFamily:'"Bebas Neue",cursive', color:'white', fontSize:'1.2rem', letterSpacing:'0.04em', marginBottom:16 }}>The Consensus — What They All Agree On</p>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:12 }}>
+                {[
+                  { icon:'📉', text:'Keep fees as low as humanly possible — every 1% in fees costs you 20%+ over 30 years' },
+                  { icon:'⏳', text:'Time in the market beats timing the market — every single one of them preaches patience' },
+                  { icon:'🌍', text:'Diversification protects you from the thing you didn\'t see coming' },
+                  { icon:'🧘', text:'Emotional discipline is worth more than any specific allocation model' },
+                ].map(({ icon, text }) => (
+                  <div key={text} style={{ display:'flex', gap:10, alignItems:'flex-start', padding:'12px 14px', borderRadius:8, background:'#1a1a1a' }}>
+                    <span style={{ fontSize:'1.2rem', flexShrink:0 }}>{icon}</span>
+                    <p style={{ fontSize:'0.78rem', color:'#888', lineHeight:1.7, margin:0 }}>{text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        </section>
+      );
+    }
+
+    function Section5() {
+      const [ret, setRet] = useState(10);
+      const [vol, setVol] = useState(15);
+      const sharpe = sharpeRatio(ret, vol);
+
+      const [allocs, setAllocs] = useState({ usEquity:40, intlEquity:15, fixedIncome:20, realEstate:10, alternatives:10, cash:5 });
+
+      const updateAlloc = (key, newVal) => {
+        const others = ALLOC_DEFS.filter(a => a.key !== key);
+        const diff = newVal - allocs[key];
+        const totalOthers = others.reduce((s,a) => s + allocs[a.key], 0);
+        if (totalOthers - diff < 0) return;
+        const scale = (totalOthers - diff) / totalOthers;
+        const updated = { ...allocs, [key]: newVal };
+        others.forEach(a => { updated[a.key] = Math.round(allocs[a.key] * scale); });
+        const sum = Object.values(updated).reduce((s,v) => s+v, 0);
+        if (sum !== 100) {
+          const largest = others.reduce((a,b) => updated[a.key] > updated[b.key] ? a : b);
+          updated[largest.key] += 100 - sum;
+        }
+        setAllocs(updated);
+      };
+
+      const total = Object.values(allocs).reduce((s,v) => s+v, 0);
+      const anyOver50 = ALLOC_DEFS.some(a => allocs[a.key] > 50);
+      const cashUnder5 = allocs.cash < 5;
+
+      return (
+        <section id="risk" style={{ padding:'80px 0' }}>
+          <div className="container">
+            <SectionLabel num="05" title="Risk & Diversification" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:600, lineHeight:1.8 }}>
+              Return without context is meaningless. The best portfolios maximize return per unit of risk — not raw return.
+            </p>
+
+            <ExpandCard title="01 — Sharpe Ratio: Return per Unit of Risk">
+              <p style={{ fontSize:'0.85rem', color:'#888', marginBottom:16, lineHeight:1.8 }}>
+                The Sharpe Ratio measures how much return you earn for each unit of risk (volatility) you take. Above 1.0 is good.
+              </p>
+              <div className="grid-2" style={{ marginBottom:16 }}>
+                <SliderRow label="Portfolio Return" value={ret} min={3} max={100} step={0.5} onChange={setRet} format={v => v+'%'} />
+                <SliderRow label="Volatility (Std Dev)" value={vol} min={1} max={80} step={0.5} onChange={setVol} format={v => v+'%'} />
+              </div>
+              <div style={{ textAlign:'center', padding:'16px 0' }}>
+                <p style={{ fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.1em', color:'#555', marginBottom:8 }}>Sharpe Ratio</p>
+                <div className="bebas" style={{
+                  fontSize:'clamp(3rem,10vw,5rem)',
+                  color: sharpe>=1 ? '#44AA66' : sharpe>=0.5 ? '#E07020' : '#CC3333',
+                }}>{sharpe.toFixed(2)}</div>
+                <p style={{ fontSize:'0.85rem', fontWeight:600, color: sharpe>=1?'#44AA66':sharpe>=0.5?'#E07020':'#CC3333' }}>
+                  {sharpe>=1 ? '✓ Good risk-adjusted return' : sharpe>=0.5 ? '⚠ Acceptable but watch volatility' : '✗ Poor compensation for risk'}
+                </p>
+                <p style={{ fontSize:'0.7rem', color:'#555', marginTop:8 }}>Risk-free rate: 5% (T-bill proxy)</p>
+              </div>
+              <AnalogyBox>
+                A QB throws for 350 yards and looks elite. But what if he faced zero pass rush against a prevent defense all game? Small sample + easy conditions = misleading stats. Numbers get padded in investing just like on the field.
+              </AnalogyBox>
+            </ExpandCard>
+
+            <ExpandCard title="02 — Volatility: Consistency Beats Peaks">
+              <div className="grid-2" style={{ marginBottom:16 }}>
+                <div className="card" style={{ textAlign:'center', borderColor:'#CC333440' }}>
+                  <p style={{ fontSize:'0.7rem', color:'#666', marginBottom:4 }}>Portfolio A</p>
+                  <div className="bebas" style={{ color:'#CC3333', fontSize:'1.5rem' }}>15% avg</div>
+                  <p style={{ fontSize:'0.7rem', color:'#666' }}>High swing</p>
+                  <p style={{ fontSize:'0.7rem', color:'#555', marginTop:4 }}>Sharpe: ~0.67</p>
+                </div>
+                <div className="card" style={{ textAlign:'center', borderColor:'#44AA6640' }}>
+                  <p style={{ fontSize:'0.7rem', color:'#666', marginBottom:4 }}>Portfolio B</p>
+                  <div className="bebas" style={{ color:'#44AA66', fontSize:'1.5rem' }}>10% avg</div>
+                  <p style={{ fontSize:'0.7rem', color:'#666' }}>Smooth growth</p>
+                  <p style={{ fontSize:'0.7rem', color:'#555', marginTop:4 }}>Sharpe: ~1.00</p>
+                </div>
+              </div>
+              <div style={{ height:200 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={VOLATILE_DATA} margin={{top:5,right:10,left:0,bottom:0}}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#222"/>
+                    <XAxis dataKey="yr" stroke="#333" tick={{fill:'#555',fontSize:11}}/>
+                    <YAxis stroke="#333" tick={{fill:'#555',fontSize:11}} tickFormatter={v=>'$'+v}/>
+                    <Tooltip contentStyle={{background:'#111',border:'1px solid #444',borderRadius:8}} labelStyle={{color:'#D4A843'}}/>
+                    <Legend wrapperStyle={{fontSize:12}} formatter={v=>v==='a'?'Portfolio A (15%, volatile)':'Portfolio B (10%, steady)'}/>
+                    <Line type="monotone" dataKey="a" stroke="#CC3333" strokeWidth={2} dot={false}/>
+                    <Line type="monotone" dataKey="b" stroke="#44AA66" strokeWidth={2} dot={false}/>
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <AnalogyBox>A running back who rushes for 150 one game and 4 the next averages 77 — but you can't build an offense around that.</AnalogyBox>
+            </ExpandCard>
+
+            <ExpandCard title="03 — Max Drawdown: The Recovery Math">
+              <div className="grid-3" style={{ marginBottom:16 }}>
+                <div className="card" style={{ textAlign:'center', borderColor:'#CC333440' }}>
+                  <p style={{ fontSize:'0.7rem', color:'#666' }}>If one loses</p>
+                  <div className="bebas" style={{ color:'#CC3333', fontSize:'1.5rem' }}>40%</div>
+                </div>
+                <div className="card" style={{ textAlign:'center' }}>
+                  <p style={{ fontSize:'0.7rem', color:'#666' }}>One needs</p>
+                  <div className="bebas" style={{ color:'#E07020', fontSize:'1.5rem' }}>+67%</div>
+                </div>
+                <div className="card" style={{ textAlign:'center', borderColor:'#44AA6640' }}>
+                  <p style={{ fontSize:'0.7rem', color:'#666' }}>Just to break</p>
+                  <div className="bebas" style={{ color:'#44AA66', fontSize:'1.5rem' }}>Even</div>
+                </div>
+              </div>
+              <div style={{ background:'#0d0d0d', borderRadius:10, padding:'16px 20px', marginBottom:16, border:'1px solid #333' }}>
+                <p style={{ fontSize:'0.65rem', color:'#555', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:12 }}>Why the math works</p>
+                <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', marginBottom:10 }}>
+                  <span style={{ fontFamily:'"Bebas Neue",cursive', color:'white', fontSize:'1.1rem' }}>$100</span>
+                  <span style={{ color:'#555', fontSize:'0.8rem' }}>‒</span>
+                  <span style={{ fontFamily:'"Bebas Neue",cursive', color:'#CC3333', fontSize:'1.1rem' }}>lose 40%</span>
+                  <span style={{ color:'#555', fontSize:'0.8rem' }}>‒</span>
+                  <span style={{ fontFamily:'"Bebas Neue",cursive', color:'white', fontSize:'1.1rem' }}>$60 left</span>
+                  <span style={{ color:'#555', fontSize:'0.8rem' }}>‒</span>
+                  <span style={{ fontFamily:'"Bebas Neue",cursive', color:'#E07020', fontSize:'1.1rem' }}>need $40 back</span>
+                  <span style={{ color:'#555', fontSize:'0.8rem' }}>‒</span>
+                  <span style={{ fontFamily:'"Bebas Neue",cursive', color:'#D4A843', fontSize:'1.1rem' }}>$40 ÷ $60 = 66.7%</span>
+                </div>
+                <p style={{ fontSize:'0.75rem', color:'#666', lineHeight:1.7, margin:0 }}>The base shrinks after a loss — so the percentage needed to recover is always larger than what was lost.</p>
+              </div>
+              <div style={{ height:180 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={DRAWDOWN_DATA} margin={{top:5,right:10,left:0,bottom:0}}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#222"/>
+                    <XAxis dataKey="m" stroke="#333" tick={{fill:'#555',fontSize:11}} label={{value:'Months',position:'insideBottom',offset:-2,fill:'#555',fontSize:11}}/>
+                    <YAxis stroke="#333" tick={{fill:'#555',fontSize:11}}/>
+                    <Tooltip contentStyle={{background:'#111',border:'1px solid #444',borderRadius:8}} labelStyle={{color:'#D4A843'}}/>
+                    <Line type="monotone" dataKey="v" stroke="#CC3333" strokeWidth={2} dot={false}/>
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <AnalogyBox>Sprinting max-effort in Q1 and gassing out in Q4 is never the play. Managing drawdown is managing stamina.</AnalogyBox>
+            </ExpandCard>
+
+            {/* Portfolio Builder */}
+            <div className="card" style={{ marginTop:24 }}>
+              <h3 className="bebas" style={{ color:'white', fontSize:'1.5rem', marginBottom:4, letterSpacing:'0.05em' }}>Be Your Own GM — How Does Your Starting Lineup Look?</h3>
+              <p style={{ fontSize:'0.75rem', color:'#555', marginBottom:20 }}>Adjust the weights and see how your lineup balances. Educational illustration only — not a personal recommendation.</p>
+
+              {cashUnder5 && (
+                <div style={{ marginBottom:16, borderRadius:8, padding:'12px 16px', background:'#1a0a00', border:'1px solid #E07020', fontSize:'0.85rem' }}>
+                      {cashUnder5 && <p style={{ color:'#E07020' }}>⚠ Keep at least 5% cash for liquidity</p>}
+                </div>
+              )}
+
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))', gap:24 }}>
+                <div>
+                  {ALLOC_DEFS.map(({key,label,role,color}) => {
+                    const val = allocs[key];
+                    return (
+                      <div key={key} style={{ marginBottom:16 }}>
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:6 }}>
+                          <div>
+                            <span style={{ fontWeight:600, color:'white', fontSize:'0.85rem' }}>{label}</span>
+                            <span style={{ marginLeft:8, fontSize:'0.7rem', color }}>{role}</span>
+                          </div>
+                          <span className="bebas" style={{ color, fontSize:'1.25rem' }}>{val}%</span>
+                        </div>
+                        <input type="range" className="slider" min={0} max={70} step={1} value={val}
+                          onChange={e => updateAlloc(key, Number(e.target.value))} />
+                      </div>
+                    );
+                  })}
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:12, borderTop:'1px solid #222' }}>
+                    <span style={{ fontSize:'0.75rem', fontWeight:600, color:'#666', textTransform:'uppercase', letterSpacing:'0.05em' }}>Total</span>
+                    <span className="bebas" style={{ fontSize:'1.5rem', color: total===100?'#44AA66':'#CC3333' }}>{total}%</span>
+                  </div>
+                </div>
+
+                <div style={{ height:280, minHeight:280 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={ALLOC_DEFS.map(({key,label,color}) => ({name:label,value:allocs[key],color}))}
+                        cx="50%" cy="50%" innerRadius="55%" outerRadius="80%" paddingAngle={2} dataKey="value"
+                        label={({name,value}) => value>5 ? value+'%' : ''} labelLine={false}
+                      >
+                        {ALLOC_DEFS.map(({key,color}) => <Cell key={key} fill={color}/>)}
+                      </Pie>
+                      <Tooltip contentStyle={{background:'#111',border:'1px solid #444',borderRadius:8}} formatter={v=>[v+'%','']}/>
+                      <Legend wrapperStyle={{fontSize:11}} formatter={(v,e) => <span style={{color:e.color}}>{v}</span>}/>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // SECTION 6 — WALL STREET REALITY
+    // ═══════════════════════════════════════════════════
+
+    function useCountUp(target, active, duration=1500) {
+      const [val, setVal] = useState(0);
+      const raf = useRef(null);
+      useEffect(() => {
+        if (!active) return;
+        const start = performance.now();
+        const step = now => {
+          const t = Math.min((now - start)/duration, 1);
+          const e = 1 - Math.pow(1-t, 3);
+          setVal(Math.round(target * e));
+          if (t < 1) raf.current = requestAnimationFrame(step);
+        };
+        raf.current = requestAnimationFrame(step);
+        return () => { if (raf.current) cancelAnimationFrame(raf.current); };
+      }, [target, active, duration]);
+      return val;
+    }
+
+    function Section6() {
+      const [portfolio, setPortfolio] = useState(1000000);
+      const [feeRate, setFeeRate] = useState(1.5);
+      const [vis, setVis] = useState(false);
+      const ref = useRef(null);
+
+      useEffect(() => {
+        const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVis(true); }, { threshold:0.5 });
+        if (ref.current) obs.observe(ref.current);
+        return () => obs.disconnect();
+      }, []);
+
+      const pct = useCountUp(85, vis);
+      const G = 8, IDX = 0.03;
+      const drag = [10,20,30].map(yr => feeDragCost(portfolio, G, feeRate, yr));
+      const idxEnd = portfolio * Math.pow(1+(G-IDX)/100, 30);
+      const actEnd = portfolio * Math.pow(1+(G-1.5)/100, 30);
+      const hedgeNet = hedgeFundNetReturn(G);
+      const hedgeEnd = portfolio * Math.pow(1+hedgeNet/100, 30);
+
+      return (
+        <section id="wall-street" style={{ padding:'80px 0', background:'#0A0A0A' }}>
+          <div className="container">
+            <SectionLabel num="06" title="Wall Street Reality" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:600, lineHeight:1.8 }}>
+              Most of Wall Street charges premium fees to deliver sub-index returns. The math on fees is silent but devastating.
+            </p>
+
+            {/* 85% counter */}
+            <div ref={ref} style={{
+              textAlign:'center', padding:'48px 24px', marginBottom:32,
+              borderRadius:12, background:'linear-gradient(135deg,#0D0D0D 0%,#111 100%)', border:'1px solid #444',
+            }}>
+              <div className="bebas" style={{ fontSize:'clamp(5rem,22vw,12rem)', lineHeight:1, color:'#D4A843', textShadow:'0 0 80px rgba(212,168,67,0.2)' }}>
+                {vis ? pct : 0}%
+              </div>
+              <div className="bebas" style={{ color:'white', letterSpacing:'0.03em', marginTop:8, fontSize:'clamp(1rem,3vw,1.5rem)' }}>
+                of actively managed funds underperform the S&P 500 over 15 years
+              </div>
+              <p style={{ fontSize:'0.7rem', color:'#444', marginTop:8 }}>Source: SPIVA Scorecard — S&P Global</p>
+            </div>
+
+            {/* Fee drag */}
+            <div className="card" style={{ marginBottom:32 }}>
+              <h3 className="bebas" style={{ color:'white', fontSize:'1.5rem', marginBottom:24, letterSpacing:'0.05em' }}>Fee Drag Calculator</h3>
+              <div className="grid-2" style={{ marginBottom:24 }}>
+                <SliderRow label="Portfolio Size" value={portfolio} min={1000000} max={100000000} step={500000} onChange={setPortfolio} format={v=>fmt$(v,true)} />
+                <SliderRow label="Annual Fee" value={feeRate} min={0.1} max={3} step={0.1} onChange={setFeeRate} format={v=>v+'%'} />
+              </div>
+              <div className="grid-3">
+                {['10 Years','20 Years','30 Years'].map((label,i) => (
+                  <div key={label} style={{ borderRadius:8, padding:16, textAlign:'center', background:'#1a0a0a', border:'1px solid #CC333440' }}>
+                    <p style={{ fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.08em', color:'#666', marginBottom:4 }}>{label}</p>
+                    <div className="bebas" style={{ color:'#CC3333', fontSize:'clamp(1.1rem,2.5vw,1.5rem)' }}>-{fmt$(drag[i],true)}</div>
+                    <p style={{ fontSize:'0.65rem', color:'#555', marginTop:4 }}>vs 0.03% index</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Three comparison cards */}
+            <h3 className="bebas" style={{ color:'white', fontSize:'1.5rem', marginBottom:16, letterSpacing:'0.05em' }}>
+              30-Year Outcome on {fmt$(portfolio,true)} at {G}%
+            </h3>
+            <div className="grid-3" style={{ marginBottom:32 }}>
+              {[
+                { label:'Index Fund', fee:'0.03% fee', end:idxEnd, color:'#44AA66', desc:'Track the market, keep almost everything' },
+                { label:'Active Manager', fee:'1.5% fee', end:actEnd, color:'#D4A843', desc:'Pays for research & active management' },
+                { label:'Hedge Fund', fee:'2% + 20% carry', end:hedgeEnd, color:'#CC3333', desc:`Net return: ${hedgeNet.toFixed(1)}% · must beat by 3-4% to match index` },
+              ].map(({label,fee,end,color,desc}) => (
+                <div key={label} style={{ borderRadius:12, padding:20, background:'#111', border:`1px solid ${color}40` }}>
+                  <div className="bebas" style={{ color:'white', fontSize:'1.3rem', marginBottom:4 }}>{label}</div>
+                  <p style={{ fontSize:'0.75rem', color, marginBottom:12 }}>{fee}</p>
+                  <div className="bebas" style={{ color, fontSize:'1.75rem' }}>{fmtM(end)}</div>
+                  <p style={{ fontSize:'0.7rem', color:'#555', marginTop:4 }}>terminal value</p>
+                  <p style={{ fontSize:'0.75rem', color:'#555', marginTop:12, lineHeight:1.6 }}>{desc}</p>
+                </div>
+              ))}
+            </div>
+
+            <AnalogyBox>
+              You're paying a max contract for bench production. A hedge fund manager must beat the market by 3–4% every year just to NET you index-fund-equivalent returns.
+            </AnalogyBox>
+          </div>
+        </section>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // SECTION 7 — DANGER ZONE
+    // ═══════════════════════════════════════════════════
+
+    const CHECKLIST = [
+      'Can I afford to lose 100% of this investment?',
+      'Can I read and fully understand the financial statements myself?',
+      "Does this person's compensation depend on me saying yes?",
+    ];
+
+    const DANGER_CARDS = [
+      {
+        title:'Private Investments', icon:'🏗',
+        desc:'Private companies, real estate deals, and direct investments often come without the transparency or liquidity of public markets. You may be locked in for years with no clear exit — and no guarantee of return.',
+        risks:['No public market — liquidity at the issuer\'s discretion','Valuations are often self-reported, not independently verified','Legal fees can eat returns even on successful investments'],
+        analogy:'Every summer, players get pitched by people who "believe in them." It\'s like a scout telling you your little brother should go undrafted — well-meaning but not objective.',
+      },
+      {
+        title:'Venture Capital / Startups', icon:'🚀',
+        desc:'Startup investing is among the highest-risk asset classes that exists. Over 90% of venture-backed companies fail to return capital. The "unicorn" stories are survivorship bias.',
+        risks:['90%+ of startups fail to return capital','Even successful exits can take 10+ years','Future funding rounds can dilute your stake dramatically'],
+        analogy:'The founder pitching you ran a great combine. One workout doesn\'t tell you how they perform over a full season when stakes are real.',
+      },
+      {
+        title:'Private Equity', icon:'🔒',
+        desc:'PE funds lock up your capital for 7–12 years, charge high fees, and provide very limited transparency into underlying investments.',
+        risks:['Capital lock-up periods of 7–12 years — no early exits','Performance fees apply on top of management fees','Leverage amplifies both gains and losses'],
+        analogy:'Signing with PE is like a 10-year max deal with no opt-out. The team controls everything. Make sure the guaranteed money justifies the lock-up.',
+      },
+      {
+        title:'Always Seek Unbiased Advice', icon:'⚖️',
+        desc:'The most costly investment decisions are often made on advice from someone with a stake in the outcome. The first question before any investment isn\'t "does this work?" — it\'s "does this person benefit if I say yes?"',
+        risks:['Commission-based advisors earn more when capital is deployed — not necessarily when it performs','Well-meaning people can genuinely believe in an opportunity without the expertise to evaluate it','Enthusiasm and conviction are not substitutes for independent due diligence'],
+      },
+    ];
+
+    function DangerCard({ card }) {
+      return (
+        <div className="warning-card" style={{ marginBottom:24 }}>
+          <div style={{ display:'flex', gap:12, alignItems:'flex-start', marginBottom:16 }}>
+            <span style={{ fontSize:'1.5rem' }}>{card.icon}</span>
+            <div>
+              <h3 className="bebas" style={{ color:'#CC3333', fontSize:'1.5rem', letterSpacing:'0.04em' }}>{card.title}</h3>
+              <p style={{ fontSize:'0.85rem', color:'#888', lineHeight:1.7, marginTop:4 }}>{card.desc}</p>
+            </div>
+          </div>
+          <ul style={{ marginBottom:0 }}>
+            {card.risks.map((r,i) => (
+              <li key={i} style={{ display:'flex', gap:8, fontSize:'0.85rem', color:'#888', marginBottom:8 }}>
+                <span style={{ color:'#CC3333', flexShrink:0 }}>•</span>{r}
+              </li>
+            ))}
+          </ul>
+        </div>
+      );
+    }
+
+    function Section7() {
+      const [checked, setChecked] = useState([false,false,false]);
+      const toggle = i => { const n=[...checked]; n[i]=!n[i]; setChecked(n); };
+      const allDone = checked.every(Boolean);
+
+      return (
+        <section id="danger-zone" style={{ padding:'80px 0' }}>
+          <div className="container">
+            <div style={{ marginBottom:40 }}>
+              <p className="bebas" style={{ color:'#CC3333', letterSpacing:'0.1em', fontSize:'1.1rem', marginBottom:8 }}>Section 07</p>
+              <h2 className="section-heading">Danger Zone</h2>
+            </div>
+            <p style={{ color:'#888', marginBottom:24, maxWidth:600, lineHeight:1.8 }}>
+              High-profile athletes tend to lose fortunes not through bad luck, but through bad investments — often pitched by people they trust.
+            </p>
+            <div style={{ borderRadius:12, padding:16, marginBottom:32, textAlign:'center', background:'#1a0a0a', border:'1px solid #CC3333' }}>
+              <div className="bebas" style={{ color:'#CC3333', fontSize:'1.5rem', letterSpacing:'0.04em', marginBottom:4 }}>⚠ HIGH RISK TERRITORY</div>
+              <p style={{ fontSize:'0.85rem', color:'#666' }}>The investments below have cost professional athletes hundreds of millions of dollars combined. Most losses were preventable.</p>
+            </div>
+            {DANGER_CARDS.map(card => <DangerCard key={card.title} card={card} />)}
+            <div className="warning-card" style={{ marginTop:8 }}>
+              <p style={{ fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.08em', color:'#555', marginBottom:12 }}>Before You Invest — Answer Honestly:</p>
+              {CHECKLIST.map((item,i) => (
+                <div key={i} onClick={() => toggle(i)} style={{ display:'flex', gap:12, alignItems:'flex-start', marginBottom:12, cursor:'pointer' }}>
+                  <div style={{
+                    marginTop:2, width:20, height:20, borderRadius:4, border:`1px solid ${checked[i]?'#44AA66':'#CC3333'}`,
+                    background:checked[i]?'#44AA6620':'transparent', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+                  }}>
+                    {checked[i] && <span style={{ color:'#44AA66', fontSize:12 }}>✓</span>}
+                  </div>
+                  <span style={{ fontSize:'0.85rem', lineHeight:1.6, color:checked[i]?'#44AA66':'#888' }}>{item}</span>
+                </div>
+              ))}
+              {allDone && (
+                <div style={{ marginTop:12, padding:'10px 16px', borderRadius:8, background:'#0a1a0a', border:'1px solid #44AA66', color:'#44AA66', fontSize:'0.85rem', fontWeight:600, textAlign:'center' }}>
+                  ✓ Due diligence check complete — proceed with caution
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // CLOSING
+    // ═══════════════════════════════════════════════════
+
+    const RULES = [
+      { num:'01', rule:'Know your sustainable spend number and build everything around protecting it.' },
+      { num:'02', rule:'Time is your greatest asset. Start early, stay consistent, and keep the engine running.' },
+      { num:'03', rule:'Boring is beautiful. Decades of data show low-cost passive investing outperforms the vast majority of active managers over time — the math is consistent and the fees compound quietly against you.' },
+      { num:'04', rule:'Liquidity is freedom. Protect access to capital you may need — locked-up money limits your options.' },
+      { num:'05', rule:'Your financial advisor should be a registered fiduciary — ask directly and get it in writing.' },
+    ];
+
+    // ═══════════════════════════════════════════════════
+    // APPENDIX
+    // ═══════════════════════════════════════════════════
+
+    const APPENDIX_ITEMS = [
+      {
+        id: 'us-equities',
+        tag: 'Equities',
+        name: 'US Equities (Stocks)',
+        color: '#D4A843',
+        icon: '📊',
+        what: 'A stock is a fractional ownership stake in a publicly traded company. When you buy shares of Apple, Nike, or JPMorgan, you own a small piece of that business — and participate in its profits, losses, and growth.',
+        products: [
+          { name: 'Common Stock', desc: 'The standard share — voting rights + potential dividends + price appreciation.' },
+          { name: 'Preferred Stock', desc: 'Higher claim on assets and dividends than common stock, but usually no voting rights.' },
+          { name: 'Blue-Chip Stocks', desc: 'Large, established companies with long track records (e.g. Apple, Microsoft, Johnson & Johnson).' },
+          { name: 'Growth Stocks', desc: 'Companies reinvesting profits to grow quickly — typically higher risk, higher upside (e.g. Tesla, Nvidia).' },
+          { name: 'Dividend Stocks', desc: 'Companies that pay regular cash distributions — income while you hold.' },
+        ],
+        howToTrade: 'Bought and sold on major exchanges (NYSE, NASDAQ) through a brokerage account. Trades settle in one business day (T+1). Available during market hours (9:30am–4pm ET) and via pre/after-hours sessions.',
+      },
+      {
+        id: 'etfs',
+        tag: 'Equities',
+        name: 'ETFs (Exchange-Traded Funds)',
+        color: '#EEC96A',
+        icon: '🧺',
+        what: 'An ETF is a basket of securities — stocks, bonds, commodities, or a mix — that trades on an exchange exactly like a single stock. Instead of buying 500 individual stocks, you buy one ETF that holds all 500. It\'s instant diversification in a single trade.',
+        products: [
+          { name: 'Index ETFs', desc: 'Track a benchmark like the S&P 500 (SPY, VOO) or the total market (VTI). Warren Buffett\'s recommendation.' },
+          { name: 'Sector ETFs', desc: 'Focus on one industry — technology (XLK), healthcare (XLV), financials (XLF).' },
+          { name: 'Bond ETFs', desc: 'Baskets of fixed income instruments — AGG (total bond market), TLT (long-term Treasuries).' },
+          { name: 'International ETFs', desc: 'Exposure to foreign markets — EFA (developed), EEM (emerging markets).' },
+          { name: 'Thematic ETFs', desc: 'Focused on a trend — clean energy, AI, real estate, cannabis. Higher risk, less diversification.' },
+        ],
+        howToTrade: 'Traded exactly like stocks — through any brokerage account, during market hours, with real-time pricing. Most major ETFs have extremely low fees (0.03%–0.20%). The ideal building block for a long-term passive portfolio.',
+      },
+      {
+        id: 'secondary-offerings',
+        tag: 'Equities',
+        name: 'Secondary Offerings',
+        color: '#E07020',
+        icon: '📋',
+        what: 'A secondary offering is when a company that is already publicly traded issues new shares to raise additional capital — or when existing shareholders (insiders, early investors) sell large blocks of their shares to the public. It\'s not the IPO; the company is already listed.',
+        products: [
+          { name: 'Dilutive Offering', desc: 'Company issues new shares — raises cash for the business but dilutes existing shareholders\' ownership percentage.' },
+          { name: 'Non-Dilutive Offering', desc: 'Existing insiders sell their shares — no new money to the company, but insiders are exiting.' },
+          { name: 'Follow-On Offering (FPO)', desc: 'A broad public sale of additional shares, often at a small discount to the current market price.' },
+          { name: 'Block Trade', desc: 'A large private sale of shares (usually 10,000+ shares) negotiated directly between institutions.' },
+        ],
+        howToTrade: 'Institutional investors typically get access through their prime brokerage. Retail investors can sometimes participate through their brokerage if they have access to the offering. Watch for the offering price — stock often dips short-term post-offering.',
+      },
+      {
+        id: 'ipos',
+        tag: 'Equities',
+        name: 'IPOs (Initial Public Offerings)',
+        color: '#CC3333',
+        icon: '🚀',
+        what: 'An IPO is the first time a private company sells shares to the general public. It\'s the moment a private business becomes a publicly traded company. High excitement, high hype — and historically, high risk for retail investors who buy at the open.',
+        products: [
+          { name: 'Traditional IPO', desc: 'Company works with underwriting banks (Goldman, Morgan Stanley) to price and distribute shares to institutions first, then public.' },
+          { name: 'Direct Listing', desc: 'Company lists shares without raising new capital or using underwriters. Employees and insiders sell directly. (e.g. Spotify, Coinbase).' },
+          { name: 'SPAC (Special Purpose Acquisition Company)', desc: 'A blank-check shell company raises money via IPO, then merges with a private company to take it public. Higher risk.' },
+          { name: 'IPO Lockup Period', desc: 'Insiders are typically barred from selling for 90–180 days post-IPO. Watch for selling pressure when lockups expire.' },
+        ],
+        howToTrade: 'IPO shares are allocated to institutional investors first. Retail access depends on your brokerage (Fidelity, Schwab, and Robinhood offer some retail IPO access). Most retail investors buy in the aftermarket — after the stock starts trading. Studies show most IPOs underperform the market 3 years post-listing.',
+      },
+      {
+        id: 'fixed-income',
+        tag: 'Fixed Income',
+        name: 'Fixed Income',
+        color: '#4488CC',
+        icon: '🏛',
+        what: 'Fixed income refers to investments that pay a defined, regular interest payment (the "coupon") and return the principal at maturity. Bonds are the core instrument. They are generally lower risk than stocks and serve as the stabilizing, income-generating layer of a portfolio.',
+        products: [
+          { name: 'Government Bonds (Treasuries)', desc: 'Issued by the US Treasury. Backed by the full faith of the US government — the safest asset class on earth. T-Bills (under 1 year), T-Notes (2–10 years), T-Bonds (20–30 years). Current yields fluctuate with the Fed.' },
+          { name: 'Corporate Bonds', desc: 'Issued by companies to raise debt capital. Pay higher yields than Treasuries to compensate for credit risk. Investment-grade (Apple, JPMorgan) vs. high-yield / "junk" (higher risk, higher coupon).' },
+          { name: 'Municipal Bonds (Munis)', desc: 'Issued by states, cities, and local governments to fund public projects. Key benefit: interest is typically exempt from federal income tax — and often state/local tax if you live there. Very valuable for high-income earners.' },
+          { name: 'TIPS (Treasury Inflation-Protected Securities)', desc: 'Government bonds where the principal adjusts with inflation (CPI). The coupon is applied to the inflation-adjusted principal. Direct hedge against purchasing power erosion — exactly what Section 4 warned about.' },
+        ],
+        howToTrade: 'Government bonds can be purchased directly at TreasuryDirect.gov or through any brokerage. Corporate and municipal bonds trade OTC (over the counter) through brokerages. Bond ETFs (AGG, BND, TLT, MUB) offer the easiest way to get broad fixed income exposure in a single trade.',
+      },
+      {
+        id: 'reits',
+        tag: 'Real Estate',
+        name: 'REITs (Real Estate Investment Trusts)',
+        color: '#44AA66',
+        icon: '🏢',
+        what: 'A REIT is a company that owns, operates, or finances income-producing real estate — and by law must distribute at least 90% of its taxable income to shareholders as dividends. It lets you invest in real estate like a stock, without buying property, dealing with tenants, or managing anything.',
+        products: [
+          { name: 'Equity REITs', desc: 'Own and operate properties directly — office buildings, apartments, shopping centers, warehouses, data centers. Income comes from rent.' },
+          { name: 'Mortgage REITs (mREITs)', desc: 'Invest in mortgages and mortgage-backed securities rather than physical properties. Higher yield, higher interest rate risk.' },
+          { name: 'Publicly Traded REITs', desc: 'Listed on stock exchanges — buy and sell like a stock. Highly liquid. (e.g. Prologis PLD, Realty Income O, American Tower AMT).' },
+          { name: 'REIT ETFs', desc: 'Baskets of REITs — VNQ (Vanguard Real Estate ETF) is the most widely held. Instant real estate diversification.' },
+          { name: 'Private REITs', desc: 'Not publicly traded. Less liquid, longer lock-up periods, but can access commercial deals not available to the public. Higher minimum investments.' },
+        ],
+        howToTrade: 'Publicly traded REITs and REIT ETFs are purchased through any brokerage account like a stock. Private REITs require accredited investor status and typically $25K–$100K minimums. Key benefit: high dividend income + real estate exposure without property management headaches.',
+      },
+      {
+        id: 'private-equity',
+        tag: 'Alternatives',
+        name: 'Private Equity',
+        color: '#888',
+        icon: '🔒',
+        what: 'Private equity involves investing in companies that are NOT publicly traded on a stock exchange. PE firms raise capital from institutional investors, use it to buy companies (often using significant debt), restructure or grow them, and sell them 5–10 years later for a profit.',
+        products: [
+          { name: 'Buyout Funds', desc: 'Acquire controlling stakes in mature companies, improve operations, then exit via sale or IPO. The most common PE strategy.' },
+          { name: 'Growth Equity', desc: 'Minority stakes in fast-growing companies that don\'t need a full buyout. Less leverage, more growth focus.' },
+          { name: 'Secondaries', desc: 'Purchase existing LP stakes in PE funds from investors who want to exit early — provides liquidity in an otherwise illiquid market.' },
+          { name: 'Co-investments', desc: 'Investing alongside a PE fund in a specific deal — lower fees, but requires deeper due diligence.' },
+        ],
+        howToTrade: 'Requires accredited investor or qualified purchaser status. Minimum investments typically $250K–$5M+. Capital is locked up for 7–12 years. Fees are typically 2% management + 20% carried interest on profits. Access through private wealth platforms (iCapital, CAIS) or direct fund relationships. Read Section 7 — Danger Zone before proceeding.',
+        warning: true,
+      },
+      {
+        id: 'venture-capital',
+        tag: 'Alternatives',
+        name: 'Venture Capital',
+        color: '#CC5533',
+        icon: '💡',
+        what: 'Venture capital funds early-stage companies — startups — in exchange for equity. VC investors bet that a small number of massive winners (the Ubers, Airbnbs, Googles of tomorrow) will more than make up for the majority of investments that fail entirely. It is the highest-risk, highest-potential-reward asset class.',
+        products: [
+          { name: 'Pre-Seed / Seed', desc: 'Earliest stage — company may be just an idea or a prototype. Highest risk, largest potential upside. Checks typically $50K–$2M.' },
+          { name: 'Series A / B / C', desc: 'Company has proven some traction. VC funds invest larger amounts to fuel growth. Risk decreases, upside narrows as valuation grows.' },
+          { name: 'VC Funds', desc: 'Pool capital from LPs and deploy across a portfolio of 20–50 startups. Diversification within the asset class. 10-year lockups typical.' },
+          { name: 'SPVs (Special Purpose Vehicles)', desc: 'Single-company investment vehicles — you invest in one specific startup alongside a lead investor. Very concentrated risk.' },
+          { name: 'Equity Crowdfunding', desc: 'Platforms like Republic or StartEngine allow smaller checks ($500+) into startups. Accessible but extremely illiquid and high-risk.' },
+        ],
+        howToTrade: 'Requires accredited investor status for most opportunities. VC fund minimums typically $250K–$1M+. Expect zero liquidity for 10+ years. Over 90% of startups fail to return capital. If you invest, it should be money you are fully prepared to lose completely. Read Section 7 — Danger Zone before proceeding.',
+        warning: true,
+      },
+    ];
+
+    function AppendixCard({ item }) {
+      const [open, setOpen] = useState(false);
+      return (
+        <div style={{ borderRadius:12, border:`1px solid ${open ? item.color+'60' : '#2a2a2a'}`, overflow:'hidden', marginBottom:12, transition:'border-color 0.2s' }}>
+          {/* Header */}
+          <div
+            onClick={() => setOpen(o => !o)}
+            style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 22px', background: open ? `${item.color}0D` : '#111', cursor:'pointer' }}
+          >
+            <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+              <span style={{ fontSize:'1.4rem' }}>{item.icon}</span>
+              <div>
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2 }}>
+                  <span style={{ fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.1em', fontWeight:700, padding:'2px 8px', borderRadius:4, background:`${item.color}20`, color:item.color }}>{item.tag}</span>
+                  {item.warning && <span style={{ fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.08em', fontWeight:700, padding:'2px 8px', borderRadius:4, background:'#CC333320', color:'#CC3333' }}>⚠ High Risk</span>}
+                </div>
+                <div style={{ fontFamily:'"Bebas Neue",cursive', fontSize:'1.2rem', color:'white', letterSpacing:'0.04em' }}>{item.name}</div>
+              </div>
+            </div>
+            <span className="bebas" style={{ color:item.color, fontSize:'1.75rem', flexShrink:0 }}>{open ? '−' : '+'}</span>
+          </div>
+
+          {/* Body */}
+          {open && (
+            <div style={{ padding:'0 22px 22px', background:'#0D0D0D' }}>
+              {/* What is it */}
+              <div style={{ paddingTop:20, marginBottom:20 }}>
+                <p style={{ fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.1em', color:'#555', marginBottom:8 }}>What it is</p>
+                <p style={{ fontSize:'0.85rem', color:'#bbb', lineHeight:1.85 }}>{item.what}</p>
+              </div>
+
+              {/* Products */}
+              <div style={{ marginBottom:20 }}>
+                <p style={{ fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.1em', color:'#555', marginBottom:12 }}>Products & Instruments</p>
+                <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                  {item.products.map(({ name, desc }) => (
+                    <div key={name} style={{ display:'flex', gap:12, padding:'10px 14px', borderRadius:8, background:'#111' }}>
+                      <div style={{ width:3, borderRadius:2, background:item.color, flexShrink:0, alignSelf:'stretch' }}/>
+                      <div>
+                        <p style={{ fontSize:'0.82rem', fontWeight:700, color:'white', marginBottom:3 }}>{name}</p>
+                        <p style={{ fontSize:'0.78rem', color:'#888', lineHeight:1.7 }}>{desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* How to trade */}
+              <div style={{ borderRadius:8, padding:'14px 16px', background:'#1a1a1a', border:`1px solid ${item.color}25` }}>
+                <p style={{ fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.1em', color:item.color, marginBottom:8 }}>How to Access / Trade</p>
+                <p style={{ fontSize:'0.8rem', color:'#999', lineHeight:1.8, margin:0 }}>{item.howToTrade}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // SECTION: IPO Case Study
+    // ═══════════════════════════════════════════════════
+
+    function SectionIPOCaseStudy() {
+      var lockupData = [
+        { date:'Aug 6, 2026', shares:'911 million shares (~7% of float)', note:'55-day lock-up — first insider unlock' },
+        { date:'Aug 20, 2026', shares:'319 million shares', note:'69-day lock-up — second tranche' },
+        { date:'Sep–Oct 2026', shares:'~1.4 billion more shares', note:'90–120-day lock-ups — two additional tranches' },
+        { date:'Jun 12, 2027', shares:'~6.4 billion shares (founder block)', note:'365-day lock-up — one year after IPO' },
+      ];
+      var priceData = [
+        { label:'IPO Price (Jun 12)', price:'$135.00', change:'—', color:'#D4A843', note:'The "official" entry point' },
+        { label:'Day 1 Open', price:'$150.00', change:'+11.1%', color:'#4ade80', note:'First moment most investors could buy' },
+        { label:'Day 1 High', price:'$176.52', change:'+30.8%', color:'#4ade80', note:'Peak of opening-day euphoria' },
+        { label:'Day 1 Close', price:'$160.95', change:'+19.2%', color:'#4ade80', note:'End of first trading day' },
+        { label:'All-Time High (Jun 16)', price:'$225.64', change:'+67.1%', color:'#4ade80', note:'4 days after IPO' },
+        { label:'All-Time Low (Aug 3)', price:'$104.83', change:'–22.3%', color:'#e05252', note:'7 weeks after IPO' },
+      ];
+      return (
+        <section id="ipo-case-study" style={{ padding:'80px 0', background:'#080808' }}>
+          <div className="container">
+            <div style={{ marginBottom:40 }}>
+              <p className="bebas" style={{ color:'#D4A843', letterSpacing:'0.1em', fontSize:'1.1rem', marginBottom:8 }}>Case Study</p>
+              <h2 className="section-heading">What to Know About an IPO</h2>
+              <p style={{ color:'#888', marginTop:12, maxWidth:680, lineHeight:1.9, fontSize:'0.9rem' }}>
+                A high-profile IPO makes headlines. Most investors get in too late, too fast, and with too little information.
+              </p>
+            </div>
+
+            <div style={{ background:'#1a0a00', border:'1px solid #D4A843', borderRadius:8, padding:'14px 20px', marginBottom:40 }}>
+              <p style={{ color:'#D4A843', fontSize:'0.72rem', letterSpacing:'0.06em', textTransform:'uppercase', margin:0, lineHeight:1.7 }}>
+                <strong>Educational Disclaimer:</strong> This case study uses a real publicly traded company as an illustrative example only. Nothing here constitutes investment advice, a recommendation to buy or sell, or a solicitation. Charlie Berman is not a licensed financial advisor. Before making any investment decision — IPOs included — consult a registered fiduciary who is legally required to act in your interest.
+              </p>
+            </div>
+
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(300px, 1fr))', gap:20, marginBottom:20 }}>
+              <div style={{ background:'#111', border:'1px solid #2a2a2a', borderRadius:10, padding:'24px 20px' }}>
+                <div style={{ marginBottom:14 }}>
+                  <span style={{ background:'#D4A84320', border:'1px solid #D4A84360', borderRadius:6, padding:'4px 10px', color:'#D4A843', fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.1em', fontWeight:700 }}>Pitfall 01</span>
+                </div>
+                <h3 style={{ color:'#fff', fontSize:'1.05rem', fontWeight:700, marginBottom:10, lineHeight:1.3 }}>Pre-IPO Price: The Number You Can't Know</h3>
+                <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.85, marginBottom:14 }}>
+                  Shares changed hands in private tender offers before this company went public — the implied valuation swung from <span style={{ color:'#D4A843', fontWeight:600 }}>$400 billion</span> to <span style={{ color:'#D4A843', fontWeight:600 }}>$800 billion</span> in six months, in a market the average investor can't touch. The public IPO price landed at <span style={{ color:'#D4A843', fontWeight:700 }}>$135 per share</span> at a $1.75 trillion valuation. Insiders set that number. You accepted it or you sat out.
+                </p>
+                <div style={{ padding:'10px 14px', background:'#0d0d0d', borderRadius:6, borderLeft:'3px solid #D4A843' }}>
+                  <p style={{ fontSize:'0.72rem', color:'#999', margin:0, lineHeight:1.7 }}>
+                    <strong style={{ color:'#D4A843' }}>The lesson:</strong> Pre-IPO pricing is set behind closed doors. By the time you can buy, the best return window may already be gone.
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ background:'#111', border:'1px solid #2a2a2a', borderRadius:10, padding:'24px 20px' }}>
+                <div style={{ marginBottom:14 }}>
+                  <span style={{ background:'#D4A84320', border:'1px solid #D4A84360', borderRadius:6, padding:'4px 10px', color:'#D4A843', fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.1em', fontWeight:700 }}>Pitfall 02</span>
+                </div>
+                <h3 style={{ color:'#fff', fontSize:'1.05rem', fontWeight:700, marginBottom:10, lineHeight:1.3 }}>Lock-Up Periods: The Supply Time Bomb</h3>
+                <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.85, marginBottom:14 }}>
+                  At IPO, roughly <span style={{ color:'#D4A843', fontWeight:600 }}>95% of shares were locked</span> — insiders barred from selling. This creates artificial scarcity. As locks expire, supply floods in. This company staggered the releases — but each tranche is a test of whether demand holds.
+                </p>
+                <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:14 }}>
+                  {lockupData.map(function(row) {
+                    return (
+                      <div key={row.date} style={{ padding:'9px 12px', background:'#0d0d0d', borderRadius:6, borderLeft:'2px solid #D4A84340' }}>
+                        <p style={{ fontSize:'0.72rem', color:'#D4A843', fontWeight:700, margin:'0 0 2px 0' }}>{row.date}</p>
+                        <p style={{ fontSize:'0.77rem', color:'#ccc', margin:'0 0 1px 0' }}>{row.shares}</p>
+                        <p style={{ fontSize:'0.67rem', color:'#555', margin:0 }}>{row.note}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ padding:'10px 14px', background:'#0d0d0d', borderRadius:6, borderLeft:'3px solid #D4A843' }}>
+                  <p style={{ fontSize:'0.72rem', color:'#999', margin:0, lineHeight:1.7 }}>
+                    <strong style={{ color:'#D4A843' }}>The lesson:</strong> More shares entering the market means more supply and more pressure on price. Read the lock-up schedule before you buy, not after.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(300px, 1fr))', gap:20, marginBottom:28 }}>
+              <div style={{ background:'#111', border:'1px solid #2a2a2a', borderRadius:10, padding:'24px 20px' }}>
+                <div style={{ marginBottom:14 }}>
+                  <span style={{ background:'#D4A84320', border:'1px solid #D4A84360', borderRadius:6, padding:'4px 10px', color:'#D4A843', fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.1em', fontWeight:700 }}>Pitfall 03</span>
+                </div>
+                <h3 style={{ color:'#fff', fontSize:'1.05rem', fontWeight:700, marginBottom:10, lineHeight:1.3 }}>What the Prospectus Actually Says</h3>
+                <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.85, marginBottom:14 }}>
+                  The legal disclosure document every company must file before going public. Most investors never read it. Here's what this one said:
+                </p>
+                <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:14 }}>
+                  <div style={{ padding:'11px 13px', background:'#0d0d0d', borderRadius:6 }}>
+                    <p style={{ fontSize:'0.7rem', color:'#D4A843', fontWeight:700, margin:'0 0 6px 0', textTransform:'uppercase', letterSpacing:'0.05em' }}>Revenue — Full-Year 2025</p>
+                    <p style={{ fontSize:'0.78rem', color:'#bbb', margin:'0 0 3px 0' }}>Satellite connectivity: <strong style={{ color:'#fff' }}>$11.4 billion</strong></p>
+                    <p style={{ fontSize:'0.78rem', color:'#bbb', margin:'0 0 3px 0' }}>Launch services (rockets): <strong style={{ color:'#fff' }}>$4.1 billion</strong></p>
+                    <p style={{ fontSize:'0.78rem', color:'#bbb', margin:0 }}>Artificial intelligence division: <strong style={{ color:'#e05252' }}>lost $6.4B in 2025</strong></p>
+                  </div>
+                  <div style={{ padding:'11px 13px', background:'#0d0d0d', borderRadius:6 }}>
+                    <p style={{ fontSize:'0.7rem', color:'#D4A843', fontWeight:700, margin:'0 0 6px 0', textTransform:'uppercase', letterSpacing:'0.05em' }}>The Bottom Line</p>
+                    <p style={{ fontSize:'0.78rem', color:'#bbb', margin:0, lineHeight:1.7 }}>Total 2025 revenue: <strong style={{ color:'#fff' }}>$18.7 billion</strong>. Net result: <strong style={{ color:'#e05252' }}>~$5 billion GAAP net loss</strong>. No traditional earnings per share target — because there are no earnings yet. Investors are paying a $1.75 trillion valuation for a future that doesn't yet exist in the numbers.</p>
+                  </div>
+                  <div style={{ padding:'11px 13px', background:'#0d0d0d', borderRadius:6 }}>
+                    <p style={{ fontSize:'0.7rem', color:'#D4A843', fontWeight:700, margin:'0 0 6px 0', textTransform:'uppercase', letterSpacing:'0.05em' }}>The Unusual Bets</p>
+                    <p style={{ fontSize:'0.78rem', color:'#bbb', margin:0, lineHeight:1.7 }}>The prospectus listed an AI compute division renting server capacity to competing AI companies. It projected $100 billion in annualized revenue by end of 2026 — an extremely aspirational target for a company currently losing billions. The prospectus called these opportunities. They are bets.</p>
+                  </div>
+                </div>
+                <div style={{ padding:'10px 14px', background:'#0d0d0d', borderRadius:6, borderLeft:'3px solid #D4A843' }}>
+                  <p style={{ fontSize:'0.72rem', color:'#999', margin:0, lineHeight:1.7 }}>
+                    <strong style={{ color:'#D4A843' }}>For the stock to rally:</strong> The company must turn $18B+ in revenue into actual profit while scaling three very different businesses. The market is pricing that outcome today, before it exists.
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ background:'#111', border:'1px solid #2a2a2a', borderRadius:10, padding:'24px 20px' }}>
+                <div style={{ marginBottom:14 }}>
+                  <span style={{ background:'#D4A84320', border:'1px solid #D4A84360', borderRadius:6, padding:'4px 10px', color:'#D4A843', fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.1em', fontWeight:700 }}>Pitfall 04</span>
+                </div>
+                <h3 style={{ color:'#fff', fontSize:'1.05rem', fontWeight:700, marginBottom:10, lineHeight:1.3 }}>Post-IPO Performance: The Full Picture</h3>
+                <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.85, marginBottom:14 }}>
+                  The IPO was declared the largest in history. Here is what the price actually did.
+                </p>
+                <div style={{ display:'flex', flexDirection:'column', gap:5, marginBottom:14 }}>
+                  {priceData.map(function(row) {
+                    return (
+                      <div key={row.label} style={{ display:'grid', gridTemplateColumns:'1fr auto auto', gap:8, alignItems:'center', padding:'8px 11px', background:'#0d0d0d', borderRadius:6 }}>
+                        <div>
+                          <p style={{ fontSize:'0.73rem', color:'#888', margin:'0 0 1px 0' }}>{row.label}</p>
+                          <p style={{ fontSize:'0.65rem', color:'#444', margin:0 }}>{row.note}</p>
+                        </div>
+                        <p style={{ fontSize:'0.87rem', color:'#fff', fontWeight:700, margin:0 }}>{row.price}</p>
+                        <p style={{ fontSize:'0.75rem', color:row.color, fontWeight:600, margin:0, minWidth:52, textAlign:'right' }}>{row.change}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ padding:'10px 14px', background:'#0d0d0d', borderRadius:6, borderLeft:'3px solid #D4A843' }}>
+                  <p style={{ fontSize:'0.72rem', color:'#999', margin:0, lineHeight:1.7 }}>
+                    <strong style={{ color:'#D4A843' }}>The lesson:</strong> If you chased the day-one open at $150, you are currently sitting on a loss. If you bought at the all-time high, you are down 38%. IPO hype and investment logic are not the same thing.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ background:'#111', border:'1px solid #D4A84330', borderRadius:10, padding:'30px 24px', textAlign:'center' }}>
+              <p className="bebas" style={{ color:'#D4A843', fontSize:'2rem', letterSpacing:'0.08em', margin:'0 0 12px 0', lineHeight:1.1 }}>THE PROSPECTUS IS A MAP. NOT A GUARANTEE.</p>
+              <p style={{ color:'#777', fontSize:'0.88rem', lineHeight:1.95, maxWidth:660, margin:'0 auto 16px' }}>
+                Every IPO files one. Most investors never read it. That reading is the minimum due diligence — and even then, consult a registered fiduciary before you move.
+              </p>
+              <p style={{ color:'#444', fontSize:'0.68rem', letterSpacing:'0.05em', textTransform:'uppercase', margin:0 }}>
+                This case study is for educational purposes only and does not constitute a recommendation to buy, sell, or hold any security.
+              </p>
+            </div>
+
+          </div>
+        </section>
+      );
+    }
+
+    function SectionAppendix() {
+      const tags = ['All', 'Equities', 'Fixed Income', 'Real Estate', 'Alternatives'];
+      const [activeTag, setActiveTag] = useState('All');
+      const filtered = activeTag === 'All' ? APPENDIX_ITEMS : APPENDIX_ITEMS.filter(i => i.tag === activeTag);
+
+      return (
+        <section id="appendix" style={{ padding:'80px 0', background:'#0A0A0A' }}>
+          <div className="container">
+            <div style={{ marginBottom:40 }}>
+              <p className="bebas" style={{ color:'#D4A843', letterSpacing:'0.1em', fontSize:'1.1rem', marginBottom:8 }}>Reference Guide</p>
+              <h2 className="section-heading">Appendix</h2>
+              <p style={{ color:'#888', marginTop:12, maxWidth:600, lineHeight:1.9, fontSize:'0.9rem' }}>
+                Plain-English definitions of every asset class, product, and instrument referenced in this presentation — what it is, what's available, and how you access it.
+              </p>
+            </div>
+
+            {/* Filter tabs */}
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:28 }}>
+              {tags.map(tag => (
+                <button key={tag} onClick={() => setActiveTag(tag)} style={{
+                  padding:'7px 16px', borderRadius:6, cursor:'pointer', fontWeight:600,
+                  fontSize:'0.75rem', textTransform:'uppercase', letterSpacing:'0.05em',
+                  background: activeTag===tag ? '#D4A843' : '#1a1a1a',
+                  color: activeTag===tag ? '#080808' : '#666',
+                  border: `1px solid ${activeTag===tag ? '#D4A843' : '#333'}`,
+                  transition:'all 0.2s',
+                }}>{tag}</button>
+              ))}
+            </div>
+
+            {/* Cards */}
+            <div>
+              {filtered.map(item => <AppendixCard key={item.id} item={item} />)}
+            </div>
+
+            <p style={{ fontSize:'0.7rem', color:'#444', marginTop:24, fontStyle:'italic', textAlign:'center' }}>
+              All definitions are for educational purposes only and do not constitute investment advice. Consult a registered fiduciary before making investment decisions.
+            </p>
+          </div>
+        </section>
+      );
+    }
+
+    function ClosingRules() {
+      return (
+        <section style={{ padding:'80px 0 0', background:'#080808', borderTop:'1px solid #1a1a1a' }}>
+          <div className="container">
+            <div style={{ textAlign:'center', marginBottom:56 }}>
+              <div style={{ width:64, height:4, background:'#D4A843', borderRadius:2, margin:'0 auto 24px' }}/>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(2.5rem,10vw,5.5rem)', letterSpacing:'0.04em', lineHeight:1 }}>The 5 Rules</div>
+              <p style={{ marginTop:16, fontSize:'0.75rem', textTransform:'uppercase', letterSpacing:'0.15em', color:'#444' }}>Commit these to memory</p>
+            </div>
+
+            <div style={{ maxWidth:720, margin:'0 auto 80px' }}>
+              {RULES.map(({num,rule}) => (
+                <div key={num} style={{ display:'flex', gap:20, alignItems:'flex-start', padding:'20px 0', borderBottom:'1px solid #1a1a1a' }}>
+                  <span className="bebas" style={{ fontSize:'clamp(2.5rem,7vw,4rem)', lineHeight:1, color:'#D4A843', flexShrink:0 }}>{num}</span>
+                  <p className="bebas" style={{ color:'white', fontSize:'clamp(1.1rem,3vw,1.75rem)', letterSpacing:'0.02em', paddingTop:'0.2rem', lineHeight:1.2 }}>{rule}</p>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ borderRadius:12, padding:'40px 24px', textAlign:'center', maxWidth:600, margin:'0 auto 64px', background:'linear-gradient(135deg,#1a1200 0%,#111 100%)', border:'1px solid #D4A843' }}>
+              <div className="bebas" style={{ color:'#D4A843', fontSize:'clamp(1.5rem,5vw,2.5rem)', letterSpacing:'0.03em', lineHeight:1.2 }}>You worked your whole life to earn it.</div>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,5vw,2.5rem)', letterSpacing:'0.03em', lineHeight:1.2, marginTop:4 }}>Work this hard to keep it.</div>
+            </div>
+
+            <div style={{ margin:'0 -16px', padding:'20px 16px', textAlign:'center', background:'#D4A843' }}>
+              <div className="bebas" style={{ color:'black', fontSize:'clamp(1rem,4vw,1.5rem)', letterSpacing:'0.12em' }}>
+                SMART MONEY | FINANCIAL LITERACY FOR PROFESSIONAL ATHLETES
+              </div>
+            </div>
+
+            <p style={{ textAlign:'center', fontSize:'0.7rem', color:'#444', padding:'20px 0' }}>
+              Built for educational purposes only. Not investment advice.
+            </p>
+          </div>
+        </section>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // ROOT APP
+    // ═══════════════════════════════════════════════════
+
+    function App() {
+      return (
+        <div style={{ background:'#080808', minHeight:'100vh' }}>
+          <Nav />
+          <div style={{ background:'#1a0a00', borderBottom:'1px solid #D4A843', padding:'10px 20px', textAlign:'center' }}>
+            <p style={{ color:'#D4A843', fontSize:'0.72rem', letterSpacing:'0.08em', textTransform:'uppercase', margin:0, lineHeight:1.5 }}>
+              <strong>Disclaimer:</strong> This presentation is for <strong>educational purposes only</strong> and does not constitute investment advice, a solicitation, or a recommendation to buy or sell any security. Charlie Berman is not a registered investment advisor, broker-dealer, or licensed financial professional. No fiduciary or advisory relationship is created by attending this presentation. All examples are illustrative. Past performance is not indicative of future results. <strong>Please consult a registered fiduciary before making any investment decisions.</strong>
+            </p>
+          </div>
+          <Hero />
+          <CourtDivider />
+          <SectionTheProblem />
+          <CourtDivider />
+          <SectionAbout />
+          <CourtDivider />
+          <Section1 />
+          <CourtDivider />
+          <Section2 />
+          <CourtDivider />
+          <Section3 />
+          <CourtDivider />
+          <Section4 />
+          <CourtDivider />
+          <SectionWhatAreWeDoing />
+          <CourtDivider />
+          <SectionPortfolioConstruction />
+          <CourtDivider />
+          <SectionLegendsPlaybook />
+          <CourtDivider />
+          <Section5 />
+          <CourtDivider />
+          <Section6 />
+          <CourtDivider />
+          <Section7 />
+          <CourtDivider />
+          <ClosingRules />
+          <CourtDivider />
+          <SectionWhatIOffer />
+          <CourtDivider />
+          <SectionWhyMe />
+          <CourtDivider />
+          <SectionIPOCaseStudy />
+          <CourtDivider />
+          <SectionAppendix />
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

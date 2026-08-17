@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Money | Level Two — Financial Education for NBA Players</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <script src="/vendor/react.min.js" crossorigin></script>
+  <script src="/vendor/react-dom.min.js" crossorigin></script>
+  <script src="/vendor/prop-types.min.js" crossorigin></script>
+  <script src="/vendor/recharts.js" crossorigin></script>
+  <script src="/vendor/babel.min.js"></script>
+  <script>
+  (function() {
+    Babel.registerPreset("react", function() {
+      return { plugins: [
+        [Babel.availablePlugins["transform-react-jsx"], { runtime: "classic" }],
+        Babel.availablePlugins["transform-react-display-name"]
+      ]};
+    });
+  })();
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: #080808;
+      color: #E8E8E8;
+      font-family: 'Open Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #111; }
+    ::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #D4A843; }
+    .bebas { font-family: 'Bebas Neue', cursive; }
+    .container { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+    @media (min-width: 640px) { .container { padding: 0 24px; } }
+    .card {
+      background: #111111;
+      border-radius: 12px;
+      border: 1px solid #1e1e1e;
+      padding: 20px;
+    }
+    .section-heading {
+      font-family: 'Bebas Neue', cursive;
+      font-size: clamp(2.5rem, 8vw, 4.5rem);
+      letter-spacing: 0.04em;
+      line-height: 1;
+      color: white;
+      text-transform: uppercase;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    @media (max-width: 600px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .grid-3 { grid-template-columns: 1fr; }
+    }
+    button { font-family: 'Open Sans', sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect } = React;
+
+    // ═══════════════════════════════════════════════════
+    // SHARED COMPONENTS
+    // ═══════════════════════════════════════════════════
+
+    function CourtDivider() {
+      return (
+        <div style={{ position:'relative', height:48, overflow:'hidden', display:'flex', alignItems:'center' }}>
+          <svg viewBox="0 0 800 48" style={{ position:'absolute', inset:0, width:'100%', height:'100%', opacity:0.06 }}>
+            <line x1="400" y1="0" x2="400" y2="48" stroke="#D4A843" strokeWidth="2"/>
+            <circle cx="400" cy="24" r="20" stroke="#D4A843" strokeWidth="2" fill="none"/>
+            <path d="M 150 0 Q 200 24 150 48" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+            <path d="M 650 0 Q 600 24 650 48" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+            <rect x="120" y="8" width="70" height="32" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+            <rect x="610" y="8" width="70" height="32" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+          </svg>
+          <div style={{ width:'100%', height:1, background:'linear-gradient(90deg,transparent,#D4A843 20%,#D4A843 80%,transparent)' }}/>
+        </div>
+      );
+    }
+
+    function SectionLabel({ num, title }) {
+      return (
+        <div style={{ marginBottom:40 }}>
+          <p className="bebas" style={{ color:'#D4A843', letterSpacing:'0.1em', fontSize:'1.1rem', marginBottom:8 }}>Section {num}</p>
+          <h2 className="section-heading">{title}</h2>
+          <div style={{ width:64, height:3, background:'#D4A843', borderRadius:2, marginTop:14 }}/>
+        </div>
+      );
+    }
+
+    function ComplianceNote({ children }) {
+      return (
+        <div style={{
+          borderLeft:'4px solid #D4A843', background:'#0D0D0D',
+          padding:'14px 18px', borderRadius:'0 8px 8px 0',
+          fontSize:'0.78rem', color:'#777', lineHeight:1.7, marginTop:32,
+        }}>
+          <strong style={{ color:'#D4A843' }}>Education note: </strong>{children}
+        </div>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // NAV
+    // ═══════════════════════════════════════════════════
+
+    const SECTIONS = [
+      { id:'foundation',      label:'The Foundation' },
+      { id:'career-arc',      label:'Career Arc' },
+      { id:'real-estate',     label:'Real Estate' },
+      { id:'pitch-room',      label:'The Pitch Room' },
+      { id:'protection',      label:'Protection First' },
+      { id:'the-team',        label:'The Team & The Circle' },
+      { id:'second-chapter',  label:'The Second Chapter' },
+    ];
+
+    function Nav() {
+      const [active, setActive] = useState('foundation');
+      const [open, setOpen] = useState(false);
+
+      useEffect(() => {
+        const obs = new IntersectionObserver(entries => {
+          entries.forEach(e => { if (e.isIntersecting) setActive(e.target.id); });
+        }, { threshold: 0.3 });
+        SECTIONS.forEach(({ id }) => { const el = document.getElementById(id); if (el) obs.observe(el); });
+        return () => obs.disconnect();
+      }, []);
+
+      const scrollTo = id => { document.getElementById(id)?.scrollIntoView({ behavior:'smooth' }); setOpen(false); };
+
+      return (
+        <nav style={{
+          position:'sticky', top:0, zIndex:50, width:'100%',
+          background:'rgba(8,8,8,0.95)', backdropFilter:'blur(12px)',
+          borderBottom:'1px solid #222',
+        }}>
+          <div className="container">
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height:56, gap:8 }}>
+              <div style={{ display:'flex', flexDirection:'column', lineHeight:1 }}>
+                <span className="bebas" style={{ color:'#D4A843', letterSpacing:'0.1em', fontSize:'1.2rem' }}>SMART MONEY</span>
+                <span style={{ color:'#444', fontSize:'0.55rem', textTransform:'uppercase', letterSpacing:'0.15em', marginTop:2 }}>Level Two</span>
+              </div>
+              <div style={{ display:'flex', gap:2, flexWrap:'wrap', justifyContent:'flex-end' }}>
+                {SECTIONS.map(({ id, label }) => (
+                  <button key={id} onClick={() => scrollTo(id)} style={{
+                    padding:'4px 10px', fontSize:'0.63rem', fontWeight:600,
+                    textTransform:'uppercase', letterSpacing:'0.04em',
+                    color: active===id ? '#D4A843' : '#555',
+                    background:'none', border:'none',
+                    borderBottom: active===id ? '2px solid #D4A843' : '2px solid transparent',
+                    cursor:'pointer', whiteSpace:'nowrap',
+                  }}>{label}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </nav>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // HERO
+    // ═══════════════════════════════════════════════════
+
+    function Hero() {
+      const [vis, setVis] = useState(false);
+      useEffect(() => { setTimeout(() => setVis(true), 100); }, []);
+
+      return (
+        <div style={{
+          position:'relative', display:'flex', flexDirection:'column',
+          alignItems:'center', justifyContent:'center',
+          padding:'96px 16px 80px',
+          background:'linear-gradient(180deg,#0D0D0D 0%,#080808 100%)',
+          overflow:'hidden',
+        }}>
+          <svg viewBox="0 0 600 400" style={{ position:'absolute', inset:0, width:'100%', height:'100%', opacity:0.04 }} preserveAspectRatio="xMidYMid slice">
+            <rect x="50" y="50" width="500" height="300" stroke="#D4A843" strokeWidth="3" fill="none"/>
+            <line x1="300" y1="50" x2="300" y2="350" stroke="#D4A843" strokeWidth="2"/>
+            <circle cx="300" cy="200" r="60" stroke="#D4A843" strokeWidth="2" fill="none"/>
+            <rect x="50" y="120" width="130" height="160" stroke="#D4A843" strokeWidth="2" fill="none"/>
+            <rect x="420" y="120" width="130" height="160" stroke="#D4A843" strokeWidth="2" fill="none"/>
+            <circle cx="180" cy="200" r="60" stroke="#D4A843" strokeWidth="2" fill="none"/>
+            <circle cx="420" cy="200" r="60" stroke="#D4A843" strokeWidth="2" fill="none"/>
+          </svg>
+
+          <div style={{ width:64, height:4, background:'#D4A843', borderRadius:2, marginBottom:32 }}/>
+
+          <div style={{
+            textAlign:'center',
+            opacity: vis ? 1 : 0,
+            transform: vis ? 'translateY(0)' : 'translateY(30px)',
+            transition: 'opacity 1s ease, transform 1s ease',
+          }}>
+            <div className="bebas" style={{ fontSize:'clamp(4rem,20vw,11rem)', letterSpacing:'0.06em', lineHeight:1, color:'white' }}>SMART</div>
+            <div className="bebas" style={{ fontSize:'clamp(4rem,20vw,11rem)', letterSpacing:'0.06em', lineHeight:1, color:'#D4A843', textShadow:'0 0 80px rgba(212,168,67,0.3)' }}>MONEY</div>
+          </div>
+
+          <div style={{
+            marginTop:24,
+            display:'inline-flex', alignItems:'center', gap:10,
+            opacity: vis ? 1 : 0, transform: vis ? 'translateY(0)' : 'translateY(20px)',
+            transition:'opacity 1s ease 0.2s, transform 1s ease 0.2s',
+          }}>
+            <div style={{ width:24, height:1, background:'#444' }}/>
+            <span className="bebas" style={{ color:'#D4A843', letterSpacing:'0.25em', fontSize:'0.95rem' }}>LEVEL TWO</span>
+            <div style={{ width:24, height:1, background:'#444' }}/>
+          </div>
+
+          <p style={{
+            marginTop:20, textAlign:'center', fontWeight:600,
+            textTransform:'uppercase', letterSpacing:'0.15em',
+            fontSize:'0.75rem', color:'#555',
+            opacity: vis ? 1 : 0, transition:'opacity 1s ease 0.4s',
+          }}>
+            Financial Education for Professional Athletes
+          </p>
+
+          <div style={{ marginTop:48, display:'flex', flexDirection:'column', alignItems:'center', gap:8, opacity: vis?1:0, transition:'opacity 1s ease 0.6s' }}>
+            <span style={{ fontSize:'0.6rem', textTransform:'uppercase', letterSpacing:'0.1em', color:'#333' }}>Scroll to explore</span>
+            <div style={{ width:1, height:32, background:'linear-gradient(180deg,#D4A843,transparent)' }}/>
+          </div>
+        </div>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // SECTION 01 — THE FOUNDATION
+    // ═══════════════════════════════════════════════════
+
+    function SectionFoundation() {
+      const pillars = [
+        {
+          title:'The Number',
+          color:'#D4A843',
+          body:'Financial freedom has a cost. Monthly spend × life expectancy × inflation = the nest egg required. Every decision in Level Two flows back to that number.',
+        },
+        {
+          title:'The Clock',
+          color:'#CC3333',
+          body:'The average NBA career is 4.5 years. The window to build the nest egg is narrow. Every year in the league without a plan is compounding that never happened.',
+        },
+        {
+          title:'The Framework',
+          color:'#4488CC',
+          body:'Minimize what taxes and fees take. Protect the base. Compound what remains. Keep boring, passive, low-cost at the core. In that order, without exception.',
+        },
+      ];
+
+      const agenda = [
+        { num:'02', label:'Career Arc & Tax Reality' },
+        { num:'03', label:'Real Estate: The Education' },
+        { num:'04', label:'The Pitch Room' },
+        { num:'05', label:'Protection First' },
+        { num:'06', label:'The Team & The Circle' },
+        { num:'07', label:'The Second Chapter' },
+      ];
+
+      return (
+        <section id="foundation" style={{ padding:'80px 0', background:'#0A0A0A' }}>
+          <div className="container">
+            <SectionLabel num="01" title="The Foundation" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              Smart Money established the rules. Level Two is about applying them to the specific decisions a professional athlete faces. The fundamentals do not change — but the complexity does.
+            </p>
+
+            <div className="grid-3" style={{ marginBottom:40 }}>
+              {pillars.map(p => (
+                <div key={p.title} className="card" style={{ borderTop:`3px solid ${p.color}`, padding:'24px' }}>
+                  <div className="bebas" style={{ color:p.color, fontSize:'1.2rem', letterSpacing:'0.05em', marginBottom:12 }}>{p.title}</div>
+                  <p style={{ color:'#888', fontSize:'0.82rem', lineHeight:1.8 }}>{p.body}</p>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ borderRadius:14, padding:'28px 32px', background:'linear-gradient(135deg,#1a1200 0%,#0e0e0e 100%)', border:'1px solid #D4A843', marginBottom:40 }}>
+              <div className="bebas" style={{ color:'#D4A843', fontSize:'1.2rem', letterSpacing:'0.05em', marginBottom:14 }}>What Changes Now</div>
+              <p style={{ color:'#ccc', lineHeight:1.9, fontSize:'0.88rem' }}>
+                Having a business manager means the conversation goes deeper. The questions get harder. The stakes get higher. Level Two covers the specific territory a professional athlete has to navigate — the career arc, the tax reality, real estate fundamentals, how to think about investment pitches, protecting what is built, building the right team, and planning the second chapter while the first one is still running.
+              </p>
+            </div>
+
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))', gap:10 }}>
+              {agenda.map(({ num, label }) => (
+                <div key={num} className="card" style={{ display:'flex', alignItems:'center', gap:14, padding:'14px 18px', border:'1px solid #1a1a1a' }}>
+                  <span className="bebas" style={{ color:'#D4A843', fontSize:'1.8rem', lineHeight:1 }}>{num}</span>
+                  <span style={{ color:'#666', fontSize:'0.78rem', lineHeight:1.4 }}>{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // SECTION 02 — CAREER ARC & TAX REALITY
+    // ═══════════════════════════════════════════════════
+
+    function SectionCareerArc() {
+      const [activePhase, setActivePhase] = useState(0);
+
+      const phases = [
+        {
+          name:'Phase 1: The Rookie',
+          years:'Years 1–3',
+          color:'#4488CC',
+          headline:'The money is real. The lifestyle temptation is real. The second contract is not guaranteed.',
+          priorities:[
+            'Lock in the number before lifestyle locks in — this is the most critical window',
+            'Build the emergency fund first, before any investment conversation',
+            'The first paycheck will shock — federal, state, city, and agent fees can take 50%+ of gross',
+            'Build the team carefully — this is when bad actors are most aggressive',
+            'The rookie contract feels permanent. It is not.',
+          ],
+          risk:'Lifestyle lock-in before the second contract. The spending that looks sustainable on rookie money becomes catastrophic on nothing.',
+          taxNote:'First-year players are often unprepared for the effective tax rate. Federal + state + city taxes on NBA income regularly runs 45–55% of gross. Understanding this before the first paycheck is non-negotiable.',
+        },
+        {
+          name:'Phase 2: The Rising',
+          years:'Years 3–7',
+          color:'#D4A843',
+          headline:'Second contract decision. The real money begins. The decisions get bigger.',
+          priorities:[
+            'Second contract math — the financial gap between a good deal and a great deal compounds for decades',
+            'First major investment decisions begin — real estate, business ventures enter the picture',
+            'Endorsement income arrives and is taxed differently from playing income',
+            'Advisory team should now be fully assembled and accountable',
+            'Begin the portfolio intentionally, not reactively',
+          ],
+          risk:'Premature "I made it" thinking. Second contracts feel like a finish line. They are not.',
+          taxNote:'Endorsement and licensing income is typically 1099 income — self-employment. Federal + self-employment tax + state can create a bill that dwarfs what was earned. Entity structure matters here. CPA-led.',
+        },
+        {
+          name:'Phase 3: The Peak',
+          years:'Years 7–12',
+          color:'#E07020',
+          headline:'Maximum earning power. Maximum complexity. Maximum accountability required.',
+          priorities:[
+            'Portfolio at scale — diversification across asset classes with full oversight',
+            'Estate planning fundamentals in place: wills, trusts, beneficiary designations reviewed',
+            'Real estate, business equity, and alternative investments need active monitoring',
+            'Second chapter planning starts now — building an identity takes years, not months',
+            'The team is paid well — make sure they are earning it',
+          ],
+          risk:'Complexity without oversight. High income attracts complexity. Complexity without the right team creates leakage that is invisible until it is too late.',
+          taxNote:'At peak earnings, every dollar of tax efficiency matters most. Deferred compensation structures, retirement vehicles, charitable strategies — all significant. These are CPA-led decisions, not guesses.',
+        },
+        {
+          name:'Phase 4: The Transition',
+          years:'Post-Career',
+          color:'#44AA66',
+          headline:'The income stops. The portfolio takes over. The number set in Phase 1 determines everything.',
+          priorities:[
+            'Portfolio must now fund the lifestyle — this is exactly why the number mattered',
+            'Post-career income sources must be built: media, business, equity, speaking',
+            'Spending review is essential — peak-career lifestyle on post-career income is the classic mistake',
+            'Identity transition is as important as the financial one — and often harder',
+            'The financial team structure changes — evolution is normal, drift is costly',
+          ],
+          risk:'Spending at peak-career levels on post-career income. The money does not run out in a day — it runs out slowly, then suddenly.',
+          taxNote:'Investment income is taxed differently from earned income. Capital gains, qualified dividends, rental income — each has different rates. The transition from W-2 to investment income requires a full CPA strategy reset.',
+        },
+      ];
+
+      const ph = phases[activePhase];
+
+      return (
+        <section id="career-arc" style={{ padding:'80px 0', background:'#080808' }}>
+          <div className="container">
+            <SectionLabel num="02" title="Career Arc & Tax Reality" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              Every phase of an NBA career has different financial priorities, different risks, and a different tax profile. The players who treat all four phases the same are leaving money on the table and setting themselves up to fail. Each phase demands a different strategy — and the cost of getting it wrong compounds just as fast as the returns do.
+            </p>
+
+            {/* NBA Contract Reality callout */}
+            <div style={{ borderRadius:12, padding:'20px 24px', background:'#0a0a0f', border:'1px solid #4488CC40', marginBottom:32 }}>
+              <div className="bebas" style={{ color:'#4488CC', fontSize:'1rem', letterSpacing:'0.06em', marginBottom:14 }}>The NBA Contract Landscape</div>
+              <p style={{ color:'#aaa', fontSize:'0.82rem', lineHeight:1.8, marginBottom:16 }}>
+                The NBA has more contract structures than any other major sport — and each one carries a completely different financial reality. Not all NBA contracts are the same. Not even close.
+              </p>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:8 }}>
+                {[
+                  { type:'Exhibit 10', color:'#555', detail:'Training camp invite. No guarantee of a roster spot. Includes a small bonus if the player goes to the G League and stays for a set period.' },
+                  { type:'Two-Way Contract', color:'#888', detail:'Roughly $560K/year. Player splits time between NBA team and G League affiliate. Limited to 50 NBA games. A legitimate pathway — but a different financial world.' },
+                  { type:'10-Day Contract', color:'#4488CC', detail:'Short-term, non-guaranteed beyond the term. Teams can sign a player to two 10-day deals before they must offer a standard contract or release them.' },
+                  { type:'Standard Multi-Year', color:'#D4A843', detail:'Where the real money begins. Fully guaranteed. Length and value are negotiated. This is the contract type that changes a career trajectory.' },
+                  { type:'Mid-Level Exception', color:'#E07020', detail:'Teams over the cap can use the MLE to sign players. A real deal — but the gap between MLE and max money is where the biggest financial divergence in the NBA lives.' },
+                  { type:'Max / Supermax', color:'#44AA66', detail:'25–35% of the salary cap depending on years of service. The supermax can only be offered by the current team. The decisions made on the first standard deal largely determine which of these a player reaches.' },
+                ].map(({ type, color, detail }) => (
+                  <div key={type} style={{ padding:'12px 14px', background:'#0d0d0d', borderRadius:8, borderTop:`2px solid ${color}` }}>
+                    <div className="bebas" style={{ color, fontSize:'0.85rem', letterSpacing:'0.04em', marginBottom:6 }}>{type}</div>
+                    <p style={{ color:'#555', fontSize:'0.72rem', lineHeight:1.6, margin:0 }}>{detail}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Phase tabs */}
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:24 }}>
+              {phases.map((p, i) => (
+                <button key={p.name} onClick={() => setActivePhase(i)} style={{
+                  padding:'8px 18px', borderRadius:6, cursor:'pointer',
+                  fontWeight:600, fontSize:'0.72rem', textTransform:'uppercase', letterSpacing:'0.04em',
+                  background: activePhase===i ? ph.color : '#111',
+                  color: activePhase===i ? '#080808' : '#555',
+                  border: `1px solid ${activePhase===i ? ph.color : '#222'}`,
+                  transition:'all 0.2s',
+                }}>
+                  {p.years}
+                </button>
+              ))}
+            </div>
+
+            {/* Active phase */}
+            <div style={{ borderRadius:14, overflow:'hidden', border:`1px solid ${ph.color}25`, marginBottom:48 }}>
+              <div style={{ background:`linear-gradient(135deg,${ph.color}12 0%,#0e0e0e 100%)`, padding:'28px' }}>
+                <div style={{ display:'flex', alignItems:'flex-start', gap:14, marginBottom:14 }}>
+                  <div style={{ flex:1 }}>
+                    <div className="bebas" style={{ color:ph.color, fontSize:'1.5rem', letterSpacing:'0.04em', lineHeight:1, marginBottom:4 }}>{ph.name}</div>
+                    <div style={{ color:'#444', fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.12em' }}>{ph.years}</div>
+                  </div>
+                </div>
+                <p style={{ color:'white', fontSize:'0.9rem', fontWeight:600, lineHeight:1.7 }}>{ph.headline}</p>
+              </div>
+              <div style={{ padding:'24px 28px', background:'#0a0a0a' }}>
+                <div className="grid-2">
+                  <div>
+                    <p style={{ fontSize:'0.62rem', color:'#444', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:14 }}>Key Priorities</p>
+                    {ph.priorities.map((pr, i) => (
+                      <div key={i} style={{ display:'flex', gap:10, alignItems:'flex-start', marginBottom:10 }}>
+                        <span style={{ color:ph.color, fontSize:'0.75rem', marginTop:3, flexShrink:0 }}>→</span>
+                        <p style={{ color:'#999', fontSize:'0.8rem', lineHeight:1.75, margin:0 }}>{pr}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <div style={{ borderRadius:10, padding:'16px', background:'#0f0606', border:'1px solid #CC333320', marginBottom:12 }}>
+                      <p style={{ fontSize:'0.62rem', color:'#CC3333', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:8 }}>Key Risk</p>
+                      <p style={{ color:'#bbb', fontSize:'0.8rem', lineHeight:1.75, margin:0 }}>{ph.risk}</p>
+                    </div>
+                    <div style={{ borderRadius:10, padding:'16px', background:'#060f08', border:'1px solid #44AA6620' }}>
+                      <p style={{ fontSize:'0.62rem', color:'#44AA66', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:8 }}>Tax Reality</p>
+                      <p style={{ color:'#bbb', fontSize:'0.8rem', lineHeight:1.75, margin:0 }}>{ph.taxNote}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Jock Tax */}
+            <div style={{ marginBottom:24 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.8rem,5vw,3rem)', letterSpacing:'0.04em', marginBottom:8 }}>The Jock Tax</div>
+              <p style={{ color:'#888', marginBottom:32, maxWidth:600, lineHeight:1.9 }}>
+                States can tax non-residents on income earned within their borders. For NBA players competing in 20+ states every season, this is one of the most overlooked financial realities in professional sports.
+              </p>
+
+              <div className="grid-3" style={{ marginBottom:24 }}>
+                {[
+                  { title:'Duty Days', icon:'📅', body:'Total working days in a year — games, practices, shootarounds, media days, travel days. Typically 200–240 for a full NBA season.' },
+                  { title:'State Allocation', icon:'📍', body:'Days spent in a given state ÷ total duty days = the share of salary that state can tax. Four games in New York = roughly 5% of annual salary subject to New York state tax.' },
+                  { title:'15–20 Returns', icon:'📋', body:'A typical NBA player files state income tax returns in 15–20 states every year. This is not optional. This is why a specialist sports CPA is not a luxury.' },
+                ].map(({ title, icon, body }) => (
+                  <div key={title} className="card" style={{ textAlign:'center', padding:'24px' }}>
+                    <div style={{ fontSize:'1.8rem', marginBottom:12 }}>{icon}</div>
+                    <div className="bebas" style={{ color:'#D4A843', fontSize:'1.1rem', letterSpacing:'0.04em', marginBottom:10 }}>{title}</div>
+                    <p style={{ color:'#777', fontSize:'0.78rem', lineHeight:1.75 }}>{body}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ borderRadius:12, padding:'20px 24px', background:'#0d0d0d', border:'1px solid #1a1a1a' }}>
+                <p style={{ fontSize:'0.62rem', color:'#444', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:14 }}>Illustrative Example — Not a Tax Estimate</p>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:8, alignItems:'center', marginBottom:12 }}>
+                  {[
+                    { label:'$10M salary', color:'white' },
+                    { label:'82 games', color:'#888' },
+                    { label:'4 games in NY', color:'#D4A843' },
+                    { label:'4 ÷ 82 = 4.9%', color:'#D4A843' },
+                    { label:'$490K subject to NY state tax', color:'#E07020' },
+                    { label:'×10.9% NY rate', color:'#E07020' },
+                    { label:'~$53K to NY alone', color:'#CC3333' },
+                  ].map(({ label, color }, i, arr) => (
+                    <React.Fragment key={i}>
+                      <span style={{ background:'#161616', borderRadius:6, padding:'5px 12px', fontSize:'0.78rem', color, fontWeight:600 }}>{label}</span>
+                      {i < arr.length - 1 && <span style={{ color:'#333', fontSize:'0.8rem' }}>→</span>}
+                    </React.Fragment>
+                  ))}
+                </div>
+                <p style={{ color:'#555', fontSize:'0.75rem', lineHeight:1.7 }}>Multiply that across 15–20 states and the cumulative jock tax bill is significant. This is why team location, residency strategy, and CPA selection all carry real financial weight.</p>
+              </div>
+            </div>
+
+            <ComplianceNote>
+              The career arc and tax content above is educational. Specific tax strategy, multi-state filing, residency planning, and entity structuring are the domain of a qualified CPA and tax attorney — not a business manager.
+            </ComplianceNote>
+          </div>
+        </section>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // SECTION 03 — REAL ESTATE: THE EDUCATION
+    // ═══════════════════════════════════════════════════
+
+    function SectionRealEstate() {
+      const [activeTab, setActiveTab] = useState(0);
+
+      const concepts = [
+        {
+          title:'Cash Flow vs. Appreciation',
+          color:'#44AA66',
+          body:'Two ways to make money in real estate. Cash flow is monthly rental income after all expenses — the property pays one each month. Appreciation is the property growing in value over time. Most athletes focus on appreciation and severely underestimate the expenses that eat into — or eliminate — cash flow.',
+        },
+        {
+          title:'Depreciation',
+          color:'#D4A843',
+          body:'The IRS allows a deduction for the theoretical "wear and tear" of a property over time. For a residential rental, the value of the structure (not the land) is depreciated over 27.5 years. This creates a "paper loss" that can offset income — but the rules are specific, the recapture on sale is real, and the application varies by situation. This is a CPA conversation, not a handshake decision.',
+        },
+        {
+          title:'Liquidity Risk',
+          color:'#E07020',
+          body:'Real estate is illiquid. One cannot sell a building in a week. If cash is needed urgently — injury, legal matter, family emergency — the equity in a property is inaccessible until the property sells. This is why smart money builds liquid reserves before locking capital into real estate.',
+        },
+        {
+          title:'The Leverage Lesson',
+          color:'#CC3333',
+          body:'Most real estate is purchased with borrowed money. Leverage amplifies returns in a rising market — and amplifies losses in a falling one. A 20% down payment on a $2M property means a 10% drop in value wipes out 50% of the equity. Leverage is not inherently bad. Leverage without understanding is.',
+        },
+      ];
+
+      const cashFlowItems = [
+        { label:'Gross Rent', value:'+$5,000', color:'#44AA66' },
+        { label:'Mortgage (P+I)', value:'–$2,500', color:'#666' },
+        { label:'Property Taxes', value:'–$500', color:'#666' },
+        { label:'Insurance', value:'–$200', color:'#666' },
+        { label:'Property Management (10%)', value:'–$500', color:'#666' },
+        { label:'Maintenance Reserve', value:'–$300', color:'#666' },
+        { label:'Vacancy Buffer (8%)', value:'–$400', color:'#CC3333' },
+        { label:'Net Monthly Cash Flow', value:'+$600', color:'#D4A843', bold:true },
+      ];
+
+      const questions = [
+        'What is the actual monthly cash flow after ALL expenses — not just mortgage vs. rent?',
+        'What is the historical vacancy rate in this specific market?',
+        'Who manages the property when playing 82 games in 20 cities?',
+        'What happens to this capital if it is needed in the next 2–3 years?',
+        'What is the exit strategy — and what are the transaction costs to get out?',
+      ];
+
+      const mistakes = [
+        'Buying in the draft city before knowing the team situation',
+        'Overpaying for properties in celebrity markets because of name recognition',
+        'Not budgeting for management costs when living across the country',
+        'Treating a primary residence as an investment',
+        'Saying yes to a pitch because another player did it',
+      ];
+
+      return (
+        <section id="real-estate" style={{ padding:'80px 0', background:'#0A0A0A' }}>
+          <div className="container">
+            <SectionLabel num="03" title="Real Estate: The Education" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              One of the most popular asset classes for professional athletes — and one of the most misunderstood. Real estate can be a powerful part of a portfolio. It can also be where wealth goes to disappear slowly.
+            </p>
+
+            {/* Concept tabs */}
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:20 }}>
+              {concepts.map((c, i) => (
+                <button key={c.title} onClick={() => setActiveTab(i)} style={{
+                  padding:'7px 16px', borderRadius:6, cursor:'pointer',
+                  fontWeight:600, fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.04em',
+                  background: activeTab===i ? c.color : '#111',
+                  color: activeTab===i ? '#080808' : '#555',
+                  border:`1px solid ${activeTab===i ? c.color : '#222'}`,
+                  transition:'all 0.2s',
+                }}>{c.title}</button>
+              ))}
+            </div>
+
+            <div className="card" style={{ border:`1px solid ${concepts[activeTab].color}25`, marginBottom:40, padding:'24px 28px' }}>
+              <div className="bebas" style={{ color:concepts[activeTab].color, fontSize:'1.3rem', letterSpacing:'0.04em', marginBottom:12 }}>{concepts[activeTab].title}</div>
+              <p style={{ color:'#bbb', lineHeight:1.9, fontSize:'0.87rem' }}>{concepts[activeTab].body}</p>
+            </div>
+
+            {/* Cash flow breakdown */}
+            <div style={{ marginBottom:40 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>What the Numbers Actually Look Like</div>
+              <p style={{ color:'#888', marginBottom:24, fontSize:'0.85rem', lineHeight:1.8 }}>Illustrative example — $700K property, 20% down, rented at market rate.</p>
+
+              <div style={{ borderRadius:12, overflow:'hidden', border:'1px solid #1a1a1a', marginBottom:24 }}>
+                {cashFlowItems.map(({ label, value, color, bold }, i) => (
+                  <div key={label} style={{
+                    display:'flex', justifyContent:'space-between', alignItems:'center',
+                    padding:'12px 20px',
+                    background: bold ? 'linear-gradient(135deg,#1a1200,#0e0e0e)' : (i%2===0 ? '#0d0d0d' : '#0a0a0a'),
+                    borderBottom: i < cashFlowItems.length-1 ? '1px solid #161616' : 'none',
+                    borderTop: bold ? '1px solid #D4A84330' : 'none',
+                  }}>
+                    <span style={{ color: bold ? '#ccc' : '#666', fontSize:'0.82rem', fontWeight: bold ? 600 : 400 }}>{label}</span>
+                    <span className={bold ? 'bebas' : ''} style={{ color, fontSize: bold ? '1.3rem' : '0.85rem', fontWeight: bold ? 400 : 600, letterSpacing: bold ? '0.04em' : 0 }}>{value}</span>
+                  </div>
+                ))}
+              </div>
+
+              <p style={{ color:'#555', fontSize:'0.75rem', lineHeight:1.7 }}>
+                A property that "rents for $5,000" often nets $600 after real costs. Factor in a major repair (roof, HVAC, plumbing) and a year of cash flow can disappear in one invoice. The numbers must be stress-tested before the wire goes out.
+              </p>
+            </div>
+
+            {/* Questions + Mistakes */}
+            <div className="grid-2">
+              <div>
+                <div className="bebas" style={{ color:'#44AA66', fontSize:'1.1rem', letterSpacing:'0.05em', marginBottom:16 }}>Questions to Ask Before Any Property</div>
+                {questions.map((q, i) => (
+                  <div key={i} style={{ display:'flex', gap:10, alignItems:'flex-start', marginBottom:12 }}>
+                    <span style={{ color:'#44AA66', fontSize:'0.8rem', marginTop:3, flexShrink:0 }}>0{i+1}</span>
+                    <p style={{ color:'#888', fontSize:'0.8rem', lineHeight:1.75, margin:0 }}>{q}</p>
+                  </div>
+                ))}
+              </div>
+              <div>
+                <div className="bebas" style={{ color:'#CC3333', fontSize:'1.1rem', letterSpacing:'0.05em', marginBottom:16 }}>Common Athlete Mistakes</div>
+                {mistakes.map((m, i) => (
+                  <div key={i} style={{ display:'flex', gap:10, alignItems:'flex-start', marginBottom:12 }}>
+                    <span style={{ color:'#CC3333', fontSize:'0.75rem', marginTop:4, flexShrink:0 }}>✕</span>
+                    <p style={{ color:'#888', fontSize:'0.8rem', lineHeight:1.75, margin:0 }}>{m}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <ComplianceNote>
+              Real estate concepts above are educational. Tax treatment, depreciation recapture, entity structuring, and financing decisions require a licensed CPA, real estate attorney, and fiduciary advisor.
+            </ComplianceNote>
+          </div>
+        </section>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // SECTION 04 — THE PITCH ROOM
+    // ═══════════════════════════════════════════════════
+
+    function SectionPitchRoom() {
+      const [openBias, setOpenBias] = useState(null);
+      const [checkedItems, setCheckedItems] = useState({});
+
+      const biases = [
+        {
+          name:'FOMO',
+          full:'Fear of Missing Out',
+          color:'#CC3333',
+          desc:'"This is a once-in-a-lifetime opportunity" is the most common sentence in the history of bad investments. The urgency is manufactured. Real opportunities do not expire at midnight.',
+        },
+        {
+          name:'Social Proof',
+          full:'Following the Crowd',
+          color:'#E07020',
+          desc:'"LeBron invested" or "your teammate is in" does not mean it is right. It means one other person made a decision with their own information and priorities. Do not outsource the due diligence.',
+        },
+        {
+          name:'Loss Aversion',
+          full:'Fear of Losing',
+          color:'#D4A843',
+          desc:'Research shows the emotional pain of losing $1 feels roughly twice as powerful as the joy of gaining $1. Pitches that frame "not investing" as "losing out" are exploiting this bias deliberately.',
+        },
+        {
+          name:'Narrative Bias',
+          full:'The Story Trap',
+          color:'#4488CC',
+          desc:'A compelling story is not a business plan. Founders who tell a great story are valuable — but the story and the unit economics are separate things. Make them show the math.',
+        },
+        {
+          name:'Authority Bias',
+          full:'Trusting the Label',
+          color:'#44AA66',
+          desc:'"Harvard MBA," "Goldman Sachs alum," or "Forbes 30 Under 30" are signals that deserve respect — but not a blank check. Credential inflation is common in the pitch circuit. Verify, then trust.',
+        },
+      ];
+
+      const questions = [
+        'Can one lose 100% of this investment?',
+        'Can this money be accessed if needed in the next 3 years?',
+        'Who else has invested, and is it possible to speak with them independently?',
+        'What are the total fees — management, performance, carried interest, exit?',
+        'Has a fiduciary advisor reviewed the offering documents — not just the pitch deck?',
+      ];
+
+      const toggleCheck = i => {
+        setCheckedItems(prev => ({ ...prev, [i]: !prev[i] }));
+      };
+
+      const allChecked = questions.every((_, i) => checkedItems[i]);
+
+      return (
+        <section id="pitch-room" style={{ padding:'80px 0', background:'#080808' }}>
+          <div className="container">
+            <SectionLabel num="04" title="The Pitch Room" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              Every week someone will present an opportunity. A startup. A restaurant. A fund. A brand. A property. Some will be real. Many will not. The ability to evaluate a pitch — without saying yes or no on the spot — is a financial skill that saves fortunes.
+            </p>
+
+            {/* Cap Table Education */}
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>Reading a Cap Table</div>
+              <p style={{ color:'#888', marginBottom:24, fontSize:'0.85rem', lineHeight:1.8 }}>When a company takes on investors, the cap table shows who owns what — and how that ownership changes over time.</p>
+
+              <div className="grid-2" style={{ marginBottom:20 }}>
+                <div className="card" style={{ padding:'24px' }}>
+                  <div className="bebas" style={{ color:'#D4A843', fontSize:'1.1rem', letterSpacing:'0.04em', marginBottom:14 }}>What Is Dilution?</div>
+                  <div style={{ borderRadius:10, overflow:'hidden', border:'1px solid #1a1a1a', marginBottom:14 }}>
+                    {[
+                      { label:'Company formed — 100 shares', pct:'10 shares = 10%', color:'#44AA66' },
+                      { label:'Series A — 50 new shares issued', pct:'10 shares = 6.7%', color:'#D4A843' },
+                      { label:'Series B — 80 new shares issued', pct:'10 shares = 4.3%', color:'#E07020' },
+                    ].map(({ label, pct, color }, i) => (
+                      <div key={i} style={{ padding:'10px 16px', background: i%2===0 ? '#0d0d0d' : '#0a0a0a', display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom: i<2 ? '1px solid #161616' : 'none' }}>
+                        <span style={{ color:'#777', fontSize:'0.75rem' }}>{label}</span>
+                        <span className="bebas" style={{ color, fontSize:'1rem', letterSpacing:'0.04em' }}>{pct}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p style={{ color:'#666', fontSize:'0.75rem', lineHeight:1.7 }}>Same 10 shares. The stake shrinks every time new shares are issued. The number on the term sheet is not the number at exit.</p>
+                </div>
+
+                <div className="card" style={{ padding:'24px' }}>
+                  <div className="bebas" style={{ color:'#D4A843', fontSize:'1.1rem', letterSpacing:'0.04em', marginBottom:14 }}>Common vs. Preferred</div>
+                  {[
+                    { type:'Preferred Stock', who:'Investors', gets:'Paid first in any exit or liquidation. Often has protective rights. When a startup pitches investors, they are almost always buying preferred.' },
+                    { type:'Common Stock', who:'Founders + Employees', gets:'Paid after preferred investors. When athletes receive equity through brand deals or advisory roles, it is typically common. Understand the preference stack before signing.' },
+                  ].map(({ type, who, gets }) => (
+                    <div key={type} style={{ borderRadius:8, padding:'14px', background:'#0d0d0d', border:'1px solid #1a1a1a', marginBottom:10 }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+                        <span className="bebas" style={{ color:'white', fontSize:'0.9rem', letterSpacing:'0.04em' }}>{type}</span>
+                        <span style={{ color:'#555', fontSize:'0.68rem' }}>{who}</span>
+                      </div>
+                      <p style={{ color:'#777', fontSize:'0.75rem', lineHeight:1.65 }}>{gets}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* SAFE Notes */}
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>SAFE Notes — Where Most Deals Start</div>
+              <p style={{ color:'#888', marginBottom:24, fontSize:'0.85rem', lineHeight:1.8 }}>
+                Most startup pitches don't arrive as direct equity — they arrive as a SAFE note (Simple Agreement for Future Equity). You're not buying shares today. You're buying the right to receive shares later, at terms that don't fully exist yet.
+              </p>
+              <div className="grid-2" style={{ marginBottom:20 }}>
+                <div className="card" style={{ padding:'24px' }}>
+                  <div className="bebas" style={{ color:'#D4A843', fontSize:'1.1rem', letterSpacing:'0.04em', marginBottom:14 }}>How a SAFE Works</div>
+                  {[
+                    { step:'01', label:'You invest $X today', desc:'No shares are issued. You hold a SAFE — a contractual right to receive equity in the future.' },
+                    { step:'02', label:'A qualifying liquidity event occurs', desc:'The SAFE converts when the company hits a defined trigger — most commonly a priced equity financing (Series A and beyond), but also an acquisition or IPO. No shares exist until this happens.' },
+                    { step:'03', label:'Your ownership is set', desc:'Only now do you know exactly what percentage you own — and what class of stock you hold.' },
+                  ].map(function({ step, label, desc }) { return (
+                    <div key={step} style={{ display:'flex', gap:14, marginBottom:14, alignItems:'flex-start' }}>
+                      <span className="bebas" style={{ color:'#D4A843', fontSize:'1.25rem', flexShrink:0, lineHeight:1 }}>{step}</span>
+                      <div>
+                        <div style={{ color:'white', fontSize:'0.8rem', fontWeight:600, marginBottom:3 }}>{label}</div>
+                        <div style={{ color:'#666', fontSize:'0.75rem', lineHeight:1.6 }}>{desc}</div>
+                      </div>
+                    </div>
+                  ); })}
+                </div>
+                <div className="card" style={{ padding:'24px' }}>
+                  <div className="bebas" style={{ color:'#D4A843', fontSize:'1.1rem', letterSpacing:'0.04em', marginBottom:14 }}>Key Terms to Know</div>
+                  {[
+                    { term:'Valuation Cap', def:'The maximum valuation at which your SAFE converts. A $10M cap on a company that later raises at $50M is a win — you convert as if the company was worth only $10M.' },
+                    { term:'Discount Rate', def:'You convert at a lower price than new investors. A 20% discount means you pay 80 cents for every $1 the next round pays. Better than nothing — but a strong cap beats a discount alone.' },
+                    { term:'Conversion Trigger', def:'The SAFE converts upon a qualifying liquidity event — a priced equity financing (Series A or later), an acquisition, or an IPO. Each triggers conversion under potentially different terms. If none of these events occur, the SAFE can remain unconverted indefinitely.' },
+                    { term:'No Cap, No Discount', def:'The worst structure. You invest today at unknown future terms. If the company raises at a $500M valuation, you convert at $500M — paying top dollar with zero advantage over the next investor.' },
+                  ].map(function({ term, def }) { return (
+                    <div key={term} style={{ borderRadius:8, padding:'12px 14px', background:'#0d0d0d', border:'1px solid #1a1a1a', marginBottom:8 }}>
+                      <div className="bebas" style={{ color:'white', fontSize:'0.85rem', letterSpacing:'0.04em', marginBottom:4 }}>{term}</div>
+                      <p style={{ color:'#666', fontSize:'0.73rem', lineHeight:1.65, margin:0 }}>{def}</p>
+                    </div>
+                  ); })}
+                </div>
+              </div>
+              <div className="card" style={{ background:'linear-gradient(135deg,#1a0800 0%,#111 100%)', border:'1px solid #D4A843', padding:'24px' }}>
+                <div className="bebas" style={{ color:'#D4A843', fontSize:'1rem', letterSpacing:'0.08em', marginBottom:10 }}>The Bottom Line</div>
+                <p style={{ color:'#aaa', fontSize:'0.85rem', lineHeight:1.8, margin:0 }}>
+                  When someone offers you "equity" in their startup, ask: is this a SAFE or priced equity? If it's a SAFE — what's the valuation cap? What's the discount rate? What triggers conversion? A SAFE with no cap and no discount is not a deal. It's a donation with paperwork.
+                </p>
+              </div>
+            </div>
+
+            {/* Behavioral Finance */}
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>The Mind Game</div>
+              <p style={{ color:'#888', marginBottom:24, fontSize:'0.85rem', lineHeight:1.8 }}>
+                Behavioral finance is the study of how psychology affects financial decisions. Experienced salespeople understand these biases better than most investors do. Recognizing them is the first defense.
+              </p>
+
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))', gap:10, marginBottom:16 }}>
+                {biases.map((b, i) => (
+                  <div key={b.name} onClick={() => setOpenBias(openBias===i ? null : i)} style={{
+                    borderRadius:10, padding:'16px 20px', cursor:'pointer',
+                    background: openBias===i ? `${b.color}10` : '#0d0d0d',
+                    border: `1px solid ${openBias===i ? b.color+'40' : '#1a1a1a'}`,
+                    transition:'all 0.2s',
+                  }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: openBias===i ? 12 : 0 }}>
+                      <div>
+                        <span className="bebas" style={{ color:b.color, fontSize:'1rem', letterSpacing:'0.05em' }}>{b.name}</span>
+                        <span style={{ color:'#444', fontSize:'0.7rem', marginLeft:8 }}>{b.full}</span>
+                      </div>
+                      <span style={{ color:b.color, fontSize:'0.75rem' }}>{openBias===i ? '▲' : '▼'}</span>
+                    </div>
+                    {openBias===i && <p style={{ color:'#aaa', fontSize:'0.8rem', lineHeight:1.75, margin:0 }}>{b.desc}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 5 Questions Checklist */}
+            <div>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>Before Any Investment: 5 Questions</div>
+              <p style={{ color:'#888', marginBottom:24, fontSize:'0.85rem', lineHeight:1.8 }}>If all five cannot be answered with a clear, documented yes — the answer is not yet.</p>
+
+              <div style={{ borderRadius:12, overflow:'hidden', border:'1px solid #1a1a1a' }}>
+                {questions.map((q, i) => (
+                  <div key={i} onClick={() => toggleCheck(i)} style={{
+                    display:'flex', gap:16, alignItems:'flex-start', padding:'16px 20px',
+                    background: checkedItems[i] ? '#0a150a' : (i%2===0 ? '#0d0d0d' : '#0a0a0a'),
+                    borderBottom: i < questions.length-1 ? '1px solid #161616' : 'none',
+                    cursor:'pointer', transition:'background 0.2s',
+                  }}>
+                    <div style={{
+                      width:22, height:22, borderRadius:6, flexShrink:0, marginTop:1,
+                      border: `2px solid ${checkedItems[i] ? '#44AA66' : '#333'}`,
+                      background: checkedItems[i] ? '#44AA66' : 'transparent',
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      transition:'all 0.2s',
+                    }}>
+                      {checkedItems[i] && <span style={{ color:'#080808', fontSize:'0.75rem', fontWeight:700 }}>✓</span>}
+                    </div>
+                    <div>
+                      <span style={{ color:'#555', fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.08em', display:'block', marginBottom:4 }}>Q{i+1}</span>
+                      <p style={{ color: checkedItems[i] ? '#aaa' : '#ccc', fontSize:'0.82rem', lineHeight:1.7, margin:0 }}>{q}</p>
+                    </div>
+                  </div>
+                ))}
+                {allChecked && (
+                  <div style={{ padding:'16px 20px', background:'linear-gradient(135deg,#0a150a,#0d0d0d)', borderTop:'1px solid #44AA6630', textAlign:'center' }}>
+                    <span className="bebas" style={{ color:'#44AA66', fontSize:'1.1rem', letterSpacing:'0.05em' }}>All five cleared — ready for the next step. Now have a fiduciary review the documents.</span>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ marginTop:20, borderRadius:10, padding:'16px 20px', background:'#0f0a0a', border:'1px solid #CC333325' }}>
+                <div className="bebas" style={{ color:'#CC3333', fontSize:'0.9rem', letterSpacing:'0.06em', marginBottom:8 }}>Red Flags in Any Pitch</div>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+                  {['Urgency — "decide by Friday"', 'Guaranteed returns', '"Everyone else is in"', 'Complexity designed to confuse', 'Pressure to skip the team review'].map(f => (
+                    <span key={f} style={{ background:'#CC333315', border:'1px solid #CC333325', borderRadius:6, padding:'4px 12px', fontSize:'0.72rem', color:'#CC3333' }}>{f}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // SECTION 05 — PROTECTION FIRST
+    // ═══════════════════════════════════════════════════
+
+    function SectionProtection() {
+      const [openCard, setOpenCard] = useState(null);
+
+      const order = [
+        { num:'01', label:'Protect', sub:'Insurance · Emergency Fund', color:'#4488CC' },
+        { num:'02', label:'Stabilize', sub:'Eliminate High-Cost Debt', color:'#D4A843' },
+        { num:'03', label:'Build', sub:'Invest · Compound · Grow', color:'#44AA66' },
+      ];
+
+      const types = [
+        {
+          title:'Career-Ending Injury Insurance',
+          color:'#4488CC',
+          body:`Covers the loss of future earning potential if an injury permanently ends a career. For NBA players at peak salary, policies of $10–30M or more are available. Premiums are significant. Pre-existing conditions can affect eligibility. The NBPA has resources — and individual coverage beyond what the union offers is worth exploring. Most players do not have enough. Many players have none.`,
+          key:'Get in place early. Harder to obtain as the career progresses and any existing injury history grows.',
+        },
+        {
+          title:'Disability Insurance',
+          color:'#4488CC',
+          body:'Covers a portion of income if an injury prevents playing for a defined period — shorter-term than career-ending coverage. NBA contracts include some injury protection provisions, but supplemental individual disability coverage exists and fills gaps that contract language does not.',
+          key:'Understand what the contract already provides before assuming gaps are covered.',
+        },
+        {
+          title:'Umbrella Liability Insurance',
+          color:'#E07020',
+          body:`High-net-worth individuals — especially those with public profiles — are targets for lawsuits. Umbrella liability insurance sits on top of existing auto, home, and other policies and covers claims that exceed those limits. For professional athletes, $5–10M of umbrella coverage is common. The annual premium is typically modest relative to the protection it provides.`,
+          key:'This is one of the most cost-effective forms of protection available. Do not wait for a lawsuit to discover the gap.',
+        },
+        {
+          title:'Life Insurance',
+          color:'#E07020',
+          body:'Term life insurance pays a defined benefit if the insured dies within the policy period. Whole life and variable life policies combine a death benefit with an investment component — and are often aggressively pitched to professional athletes. Understand exactly what is being bought, what it costs, and how it fits into the broader plan before signing. The words "guaranteed" and "tax-advantaged" in a life insurance pitch deserve additional scrutiny.',
+          key:'Term life is generally simpler. Permanent life has its place, but requires careful independent evaluation.',
+        },
+        {
+          title:'Emergency Fund',
+          color:'#44AA66',
+          body:`A liquid cash reserve covering 12–24 months of living expenses — held in cash or cash equivalents, not invested. Athletes should hold more than the standard recommendation given the income volatility of a professional sports career. An injury, a trade, a sudden release: having a liquid runway means decisions can be made from a position of stability, not desperation.`,
+          key:'This is not optional and it is not boring. It is the foundation under everything else.',
+        },
+      ];
+
+      return (
+        <section id="protection" style={{ padding:'80px 0', background:'#0A0A0A' }}>
+          <div className="container">
+            <SectionLabel num="05" title="Protection First" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              Before growth. Before investment. Before anything else. The foundation must be protected. One career-ending injury without coverage can undo everything that was built. The order of operations matters.
+            </p>
+
+            {/* Order of operations */}
+            <div style={{ display:'flex', gap:0, marginBottom:48, borderRadius:12, overflow:'hidden', border:'1px solid #1a1a1a' }}>
+              {order.map(({ num, label, sub, color }, i) => (
+                <div key={num} style={{
+                  flex:1, padding:'28px 20px', textAlign:'center',
+                  background:`linear-gradient(135deg,${color}10 0%,#0d0d0d 100%)`,
+                  borderRight: i < order.length-1 ? '1px solid #1a1a1a' : 'none',
+                  position:'relative',
+                }}>
+                  <div className="bebas" style={{ color:'#1a1a1a', fontSize:'4rem', lineHeight:1, position:'absolute', top:8, left:'50%', transform:'translateX(-50%)' }}>{num}</div>
+                  <div className="bebas" style={{ color, fontSize:'1.6rem', letterSpacing:'0.04em', lineHeight:1, position:'relative', zIndex:1, marginBottom:6 }}>{label}</div>
+                  <div style={{ color:'#555', fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.08em', position:'relative', zIndex:1 }}>{sub}</div>
+                  {i < order.length-1 && (
+                    <div style={{ position:'absolute', right:-14, top:'50%', transform:'translateY(-50%)', zIndex:2, color:'#D4A843', fontSize:'1.5rem', lineHeight:1 }}>→</div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Insurance types */}
+            <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>Types of Protection</div>
+            <p style={{ color:'#888', marginBottom:24, fontSize:'0.85rem', lineHeight:1.8 }}>Educational overview only. Every coverage decision requires a licensed insurance professional and a review of individual circumstances.</p>
+
+            <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:16 }}>
+              {types.map((t, i) => (
+                <div key={t.title} onClick={() => setOpenCard(openCard===i ? null : i)} style={{
+                  borderRadius:10, overflow:'hidden', cursor:'pointer',
+                  border:`1px solid ${openCard===i ? t.color+'30' : '#1a1a1a'}`,
+                  transition:'border-color 0.2s',
+                }}>
+                  <div style={{
+                    padding:'16px 20px', display:'flex', justifyContent:'space-between', alignItems:'center',
+                    background: openCard===i ? `${t.color}08` : '#0d0d0d',
+                  }}>
+                    <span className="bebas" style={{ color: openCard===i ? t.color : '#ccc', fontSize:'1rem', letterSpacing:'0.05em' }}>{t.title}</span>
+                    <span style={{ color:'#444', fontSize:'0.75rem' }}>{openCard===i ? '▲' : '▼'}</span>
+                  </div>
+                  {openCard===i && (
+                    <div style={{ padding:'0 20px 20px', background:'#0a0a0a' }}>
+                      <p style={{ color:'#aaa', fontSize:'0.82rem', lineHeight:1.85, marginBottom:14 }}>{t.body}</p>
+                      <div style={{ borderRadius:8, padding:'10px 14px', background:`${t.color}10`, border:`1px solid ${t.color}20` }}>
+                        <span style={{ color:t.color, fontSize:'0.7rem', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em' }}>Key point: </span>
+                        <span style={{ color:'#aaa', fontSize:'0.78rem' }}>{t.key}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <ComplianceNote>
+              The insurance content above is educational. Coverage amounts, policy types, eligibility, and premium structures vary significantly by individual circumstances and market conditions. All coverage decisions must be made with a licensed insurance professional.
+            </ComplianceNote>
+          </div>
+        </section>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // SECTION 06 — THE TEAM & THE CIRCLE
+    // ═══════════════════════════════════════════════════
+
+    function SectionTeamAndCircle() {
+      const [openRole, setOpenRole] = useState(null);
+
+      const roles = [
+        {
+          title:'Business Manager',
+          color:'#D4A843',
+          does:'Financial education and literacy · Expense management and budgeting strategies · Big-picture accountability · Team coordination and oversight · Filtering opportunities before they reach the RIA or attorney · Translating complexity into clarity',
+          doesnt:'Manage or hold money · Execute trades · Provide licensed investment advice · File taxes',
+          note:'The quarterback who calls the play — not the one who executes every position.',
+        },
+        {
+          title:'CPA / Tax Attorney',
+          color:'#44AA66',
+          does:'Tax filing across all states · Tax strategy and planning · Entity structuring · Multi-state jock tax compliance · Deferred compensation analysis',
+          doesnt:'Manage a portfolio · Select investments · Negotiate contracts',
+          note:'A sports-specialized CPA who handles multi-state athlete returns is not optional — it is essential.',
+        },
+        {
+          title:'Registered Investment Advisor (RIA)',
+          color:'#E07020',
+          does:'Portfolio construction and management · Investment selection · Ongoing fiduciary oversight · Retirement account management',
+          doesnt:'File taxes · Negotiate contracts · Provide legal advice',
+          note:'A fiduciary is legally required to act in the client\'s best interest. Ask explicitly: "Are you a fiduciary for all services you provide?"',
+        },
+        {
+          title:'Estate Attorney',
+          color:'#888',
+          does:'Wills and trusts · Beneficiary designation review · Generational wealth planning · Power of attorney and healthcare directives',
+          doesnt:'Manage investments · Provide tax advice',
+          note:'Athletes typically need this earlier than they think. A will and trust structure should exist before the first major contract.',
+        },
+        {
+          title:'Insurance Specialist',
+          color:'#4488CC',
+          does:'Coverage analysis and gap identification · Policy placement for career-ending, disability, life, and umbrella · Annual coverage review',
+          doesnt:'Manage investments · Provide tax advice · Negotiate contracts',
+          note:'An independent broker who is not tied to a single carrier is preferred. Compensation structure matters — understand how they are paid.',
+        },
+      ];
+
+      const circleMath = [
+        { item:'1 family member at $5,000/mo', annual:60000, over3:192894 },
+        { item:'2 family members at $5,000/mo each', annual:120000, over3:385788 },
+        { item:'1 friend living with player (housing, food, extras)', annual:150000, over3:482235 },
+        { item:'Informal "loans" averaging $100,000/year', annual:100000, over3:321490 },
+      ];
+
+      return (
+        <section id="the-team" style={{ padding:'80px 0', background:'#080808' }}>
+          <div className="container">
+            <SectionLabel num="06" title="The Team & The Circle" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              Two things determine the financial outcome for most professional athletes: the quality of the advisory team, and the decisions made about the people in the circle. Both deserve the same level of rigor.
+            </p>
+
+            {/* The Team */}
+            <div style={{ marginBottom:56 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>Building the Right Team</div>
+              <p style={{ color:'#888', marginBottom:24, fontSize:'0.85rem', lineHeight:1.8 }}>Each role has a specific lane. The most dangerous advisory situations are the ones where one person claims to fill all of them.</p>
+
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {roles.map((r, i) => (
+                  <div key={r.title} onClick={() => setOpenRole(openRole===i ? null : i)} style={{
+                    borderRadius:10, overflow:'hidden', cursor:'pointer',
+                    border:`1px solid ${openRole===i ? r.color+'30' : '#1a1a1a'}`,
+                    transition:'border-color 0.2s',
+                  }}>
+                    <div style={{
+                      padding:'16px 20px', display:'flex', justifyContent:'space-between', alignItems:'center',
+                      background: openRole===i ? `${r.color}08` : '#0d0d0d',
+                    }}>
+                      <span className="bebas" style={{ color: openRole===i ? r.color : '#ccc', fontSize:'1rem', letterSpacing:'0.05em' }}>{r.title}</span>
+                      <span style={{ color:'#444', fontSize:'0.75rem' }}>{openRole===i ? '▲' : '▼'}</span>
+                    </div>
+                    {openRole===i && (
+                      <div style={{ padding:'4px 20px 20px', background:'#0a0a0a' }}>
+                        <div className="grid-2" style={{ marginBottom:12 }}>
+                          <div>
+                            <p style={{ fontSize:'0.62rem', color:'#44AA66', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:8 }}>Responsible for</p>
+                            {r.does.split(' · ').map(d => (
+                              <div key={d} style={{ display:'flex', gap:8, alignItems:'flex-start', marginBottom:7 }}>
+                                <span style={{ color:'#44AA66', fontSize:'0.7rem', marginTop:3, flexShrink:0 }}>✓</span>
+                                <p style={{ color:'#999', fontSize:'0.78rem', lineHeight:1.65, margin:0 }}>{d}</p>
+                              </div>
+                            ))}
+                          </div>
+                          <div>
+                            <p style={{ fontSize:'0.62rem', color:'#CC3333', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:8 }}>Not responsible for</p>
+                            {r.doesnt.split(' · ').map(d => (
+                              <div key={d} style={{ display:'flex', gap:8, alignItems:'flex-start', marginBottom:7 }}>
+                                <span style={{ color:'#CC3333', fontSize:'0.7rem', marginTop:3, flexShrink:0 }}>✕</span>
+                                <p style={{ color:'#777', fontSize:'0.78rem', lineHeight:1.65, margin:0 }}>{d}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div style={{ borderRadius:8, padding:'10px 14px', background:`${r.color}10`, border:`1px solid ${r.color}20` }}>
+                          <p style={{ color:'#aaa', fontSize:'0.78rem', lineHeight:1.65, margin:0 }}>{r.note}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ marginTop:20, borderRadius:10, padding:'16px 20px', background:'#0f0606', border:'1px solid #CC333325' }}>
+                <div className="bebas" style={{ color:'#CC3333', fontSize:'0.9rem', letterSpacing:'0.06em', marginBottom:10 }}>Red Flags Across All Roles</div>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+                  {['One person claiming to do all of the above', 'Fee structure that cannot be clearly explained', 'Discouraging a second opinion', 'No fiduciary disclosure', '"Guaranteed" or unusually high returns promised'].map(f => (
+                    <span key={f} style={{ background:'#CC333315', border:'1px solid #CC333325', borderRadius:6, padding:'4px 12px', fontSize:'0.72rem', color:'#CC3333' }}>{f}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* The Circle */}
+            <div>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>The Circle</div>
+              <p style={{ color:'#888', marginBottom:28, fontSize:'0.85rem', lineHeight:1.8 }}>
+                Supporting family and friends is a deeply human impulse. It is also one of the most significant financial variables in a professional athlete's career — and one that rarely shows up in any financial plan.
+              </p>
+
+              <div style={{ borderRadius:12, overflow:'hidden', border:'1px solid #1a1a1a', marginBottom:20 }}>
+                <div style={{ padding:'14px 20px', background:'#111', borderBottom:'1px solid #1a1a1a', display:'grid', gridTemplateColumns:'2fr 1fr 1fr 0.7fr', gap:12 }}>
+                  <span style={{ color:'#444', fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.1em' }}>Scenario</span>
+                  <span style={{ color:'#444', fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.1em', textAlign:'right' }}>Annual Cost</span>
+                  <span style={{ color:'#444', fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.1em', textAlign:'right' }}>Opportunity Cost (3yr @ 7%)</span>
+                  <span style={{ color:'#444', fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.1em', textAlign:'right' }}>Multiple</span>
+                </div>
+                {circleMath.map(({ item, annual, over3 }, i) => (
+                  <div key={item} style={{ padding:'14px 20px', background: i%2===0 ? '#0d0d0d' : '#0a0a0a', borderBottom: i<circleMath.length-1 ? '1px solid #161616' : 'none', display:'grid', gridTemplateColumns:'2fr 1fr 1fr 0.7fr', gap:12, alignItems:'center' }}>
+                    <span style={{ color:'#888', fontSize:'0.78rem', lineHeight:1.6 }}>{item}</span>
+                    <span className="bebas" style={{ color:'#E07020', fontSize:'1rem', letterSpacing:'0.04em', textAlign:'right' }}>${(annual/1000).toFixed(0)}K/yr</span>
+                    <span className="bebas" style={{ color:'#CC3333', fontSize:'1rem', letterSpacing:'0.04em', textAlign:'right' }}>${Math.round(over3/1000)}K</span>
+                    <span className="bebas" style={{ color:'#D4A843', fontSize:'1rem', letterSpacing:'0.04em', textAlign:'right' }}>{(over3/annual).toFixed(1)}x</span>
+                  </div>
+                ))}
+                <div style={{ padding:'14px 20px', background:'linear-gradient(135deg,#1a0a0a,#0e0e0e)', borderTop:'1px solid #CC333325', display:'grid', gridTemplateColumns:'2fr 1fr 1fr 0.7fr', gap:12, alignItems:'center' }}>
+                  <span className="bebas" style={{ color:'#ccc', fontSize:'0.95rem', letterSpacing:'0.04em' }}>Combined Example</span>
+                  <span className="bebas" style={{ color:'#E07020', fontSize:'1.2rem', letterSpacing:'0.04em', textAlign:'right' }}>$430K/yr</span>
+                  <span className="bebas" style={{ color:'#CC3333', fontSize:'1.2rem', letterSpacing:'0.04em', textAlign:'right' }}>$1.38M</span>
+                  <span className="bebas" style={{ color:'#D4A843', fontSize:'1.2rem', letterSpacing:'0.04em', textAlign:'right' }}>3.2x</span>
+                </div>
+              </div>
+
+              <p style={{ color:'#555', fontSize:'0.75rem', lineHeight:1.75, marginBottom:24 }}>
+                Opportunity cost represents what that capital could have grown to if compounded instead. These figures are illustrative. The real number, across a full career, is often larger.
+              </p>
+
+              <div className="grid-2">
+                {[
+                  {
+                    title:'Loan vs. Gift',
+                    color:'#D4A843',
+                    body:'A gift above the annual exclusion ($18,000 per person in 2024) has gift tax implications. A loan needs documentation to be treated as a loan. Most "loans" to family members are gifts in practice — and the IRS treats them accordingly. Set the framework early.',
+                  },
+                  {
+                    title:'The Hardest Word',
+                    color:'#4488CC',
+                    body:'"No" is the most expensive word in a player\'s vocabulary to avoid. Setting clear, consistent expectations about financial support is not about abandoning people — it is about not becoming someone who cannot support anyone, including oneself, later.',
+                  },
+                ].map(({ title, color, body }) => (
+                  <div key={title} className="card" style={{ borderTop:`3px solid ${color}`, padding:'22px' }}>
+                    <div className="bebas" style={{ color, fontSize:'1.1rem', letterSpacing:'0.04em', marginBottom:12 }}>{title}</div>
+                    <p style={{ color:'#888', fontSize:'0.8rem', lineHeight:1.8 }}>{body}</p>
+                  </div>
+                ))}
+              </div>
+
+              <ComplianceNote>
+                Gift tax rules, loan documentation requirements, and circle financial planning involve tax and legal considerations. Consult a CPA and estate attorney for guidance specific to any individual situation.
+              </ComplianceNote>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // SECTION 07 — THE SECOND CHAPTER
+    // ═══════════════════════════════════════════════════
+
+    function SectionSecondChapter() {
+      const stats = [
+        { stat:'4.5 years', label:'Average NBA career length' },
+        { stat:'30–35', label:'Typical retirement age' },
+        { stat:'40–50+', label:'Years of post-career life' },
+        { stat:'60%', label:'Financially distressed within 2 years of retirement' },
+      ];
+
+      const incomeCategories = [
+        {
+          title:'Media & Broadcasting',
+          color:'#4488CC',
+          realistic:'TV analysis, podcasting, social content, streaming. High ceiling, competitive field. The players who transition successfully into media started building that presence years before retirement — not months after.',
+          planNow:'Build the brand and communication skills while still playing. The media door opens to players people already know and like.',
+        },
+        {
+          title:'Business Ownership',
+          color:'#D4A843',
+          realistic:'Franchise ownership (restaurants, gyms, service businesses), retail, hospitality. Requires active management or a trusted operating partner. Most athlete-owned businesses fail not from lack of capital but from lack of oversight.',
+          planNow:'Start evaluating operating partners and business categories now. A franchise or business bought in year 10 that opens in year 12 is a year-1 post-career asset.',
+        },
+        {
+          title:'Equity & Ownership Stakes',
+          color:'#44AA66',
+          realistic:'Team ownership (limited partner opportunities are expanding), brand equity deals, startup equity. Mostly illiquid, long-term plays. The exit value is real — but it takes years. Do not count on it for income.',
+          planNow:'Equity stakes taken during the career can mature during the second one. Evaluate them with a fiduciary advisor, not just the enthusiasm of the moment.',
+        },
+        {
+          title:'Speaking & Appearances',
+          color:'#E07020',
+          realistic:'Significant income for players with a notable profile. Corporate keynotes, motivational speaking, brand appearances. Requires maintaining a public presence and booking infrastructure. Not passive income.',
+          planNow:'A known brand during the career is the most valuable asset for post-career speaking. This is built over years.',
+        },
+        {
+          title:'Advisory & Coaching',
+          color:'#888',
+          realistic:'Coaching, player development, front office roles, sports-adjacent advisory. Lower financial ceiling than most other categories — but high in purpose and engagement. Many players find this path most fulfilling.',
+          planNow:'Certifications, networks, and reputation in the coaching/player-development world are built while still playing. Express interest early.',
+        },
+        {
+          title:'Influencer & Content Creator',
+          color:'#9966CC',
+          realistic:'Social media monetization (YouTube, Instagram, TikTok), paid brand partnerships, product lines, licensing deals. Athletes have built-in audience credibility that brands pay a premium for. Income potential is significant — but it requires consistency, a content strategy, and eventually a team (editor, manager, partnerships coordinator). The following built during the career is the asset.',
+          planNow:'Post during the career. Build in the offseason. Every touchpoint on social is equity in the post-career brand. Players who retire with a large, engaged following have a monetizable asset. Players who retire with a small one face a much harder path — and there is no shortcut to building that audience after the spotlight moves on.',
+        },
+      ];
+
+      const [openCat, setOpenCat] = useState(null);
+
+      return (
+        <section id="second-chapter" style={{ padding:'80px 0', background:'#0A0A0A' }}>
+          <div className="container">
+            <SectionLabel num="07" title="The Second Chapter" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              The best athletes plan the second chapter while the first one is still going. The ones who wait until the final season are already behind. Post-career is not the finish line — it is the start of a 40-year run that the playing career was supposed to fund.
+            </p>
+
+            {/* Stats */}
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:12, marginBottom:48 }}>
+              {stats.map(({ stat, label }) => (
+                <div key={label} className="card" style={{ textAlign:'center', padding:'28px 16px', border:'1px solid #1a1a1a' }}>
+                  <div className="bebas" style={{ color:'#D4A843', fontSize:'clamp(1.8rem,5vw,2.8rem)', letterSpacing:'0.04em', lineHeight:1, marginBottom:8 }}>{stat}</div>
+                  <div style={{ color:'#555', fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.08em', lineHeight:1.5 }}>{label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Income categories */}
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>Post-Career Income Categories</div>
+              <p style={{ color:'#888', marginBottom:24, fontSize:'0.85rem', lineHeight:1.8 }}>None of these is passive. All of them reward players who started building years before retirement.</p>
+
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {incomeCategories.map((c, i) => (
+                  <div key={c.title} onClick={() => setOpenCat(openCat===i ? null : i)} style={{
+                    borderRadius:10, overflow:'hidden', cursor:'pointer',
+                    border:`1px solid ${openCat===i ? c.color+'30' : '#1a1a1a'}`,
+                    transition:'border-color 0.2s',
+                  }}>
+                    <div style={{
+                      padding:'16px 20px', display:'flex', justifyContent:'space-between', alignItems:'center',
+                      background: openCat===i ? `${c.color}08` : '#0d0d0d',
+                    }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                        <div style={{ width:4, height:24, borderRadius:2, background:c.color }}/>
+                        <span className="bebas" style={{ color: openCat===i ? c.color : '#ccc', fontSize:'1rem', letterSpacing:'0.05em' }}>{c.title}</span>
+                      </div>
+                      <span style={{ color:'#444', fontSize:'0.75rem' }}>{openCat===i ? '▲' : '▼'}</span>
+                    </div>
+                    {openCat===i && (
+                      <div style={{ padding:'4px 20px 20px', background:'#0a0a0a' }}>
+                        <div className="grid-2">
+                          <div>
+                            <p style={{ fontSize:'0.62px', color:'#44AA66', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:8, fontSize:'0.62rem' }}>The Reality</p>
+                            <p style={{ color:'#aaa', fontSize:'0.8rem', lineHeight:1.8, margin:0 }}>{c.realistic}</p>
+                          </div>
+                          <div>
+                            <p style={{ fontSize:'0.62rem', color:'#D4A843', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:8 }}>Start Now</p>
+                            <p style={{ color:'#aaa', fontSize:'0.8rem', lineHeight:1.8, margin:0 }}>{c.planNow}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Planning principles */}
+            <div style={{ marginBottom:40 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:24 }}>The Principles</div>
+              <div className="grid-2">
+                {[
+                  { title:'Build the identity before you need it', body:'Brand, relationships, and reputation are built over years. A player who spends the last three seasons of a career quietly building their next chapter has a meaningful head start on the day they announce retirement.' },
+                  { title:'The portfolio funds the lifestyle', body:'Post-career should not require income from a new venture to maintain the standard of living. The portfolio built during the playing career carries that weight — which is exactly why the number mattered from day one.' },
+                  { title:'Diversify income before you need it', body:'The second chapter is not a single bet. Multiple income streams — some active, some passive — provide the same diversification in income that the portfolio provides in investment.' },
+                  { title:'Transition thoughtfully', body:'The athletes who struggle most in retirement made their first major post-career move reactively — a franchise bought because they needed something to do, a media deal accepted because someone called. Plan from strength, not from boredom.' },
+                ].map(({ title, body }) => (
+                  <div key={title} className="card" style={{ padding:'22px', border:'1px solid #1a1a1a' }}>
+                    <div className="bebas" style={{ color:'#D4A843', fontSize:'1rem', letterSpacing:'0.05em', marginBottom:10, lineHeight:1.2 }}>{title}</div>
+                    <p style={{ color:'#777', fontSize:'0.8rem', lineHeight:1.8, margin:0 }}>{body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* The Rule */}
+            <div style={{ borderRadius:14, padding:'36px', background:'linear-gradient(135deg,#1a1200 0%,#0e0e0e 100%)', border:'1px solid #D4A843', textAlign:'center' }}>
+              <p style={{ color:'#555', fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.15em', marginBottom:16 }}>The Question That Drives Level Two</p>
+              <p className="bebas" style={{ color:'#D4A843', fontSize:'clamp(1rem,3vw,1.5rem)', letterSpacing:'0.04em', lineHeight:1.5, margin:0 }}>
+                "If the career ended tomorrow, what would you do on Monday?"
+              </p>
+              <p style={{ color:'#555', fontSize:'0.8rem', lineHeight:1.8, marginTop:16, maxWidth:520, margin:'16px auto 0' }}>
+                If the answer is clear, the second chapter is already underway. If it is not, that is what we work on today — not after the last game.
+              </p>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // CLOSING
+    // ═══════════════════════════════════════════════════
+
+    function Closing() {
+      return (
+        <section style={{ padding:'80px 0 40px', background:'#080808' }}>
+          <div className="container" style={{ textAlign:'center' }}>
+            <CourtDivider />
+            <div style={{ paddingTop:48, marginBottom:24 }}>
+              <div className="bebas" style={{ fontSize:'clamp(2rem,8vw,4rem)', letterSpacing:'0.06em', lineHeight:1, color:'white' }}>SMART</div>
+              <div className="bebas" style={{ fontSize:'clamp(2rem,8vw,4rem)', letterSpacing:'0.06em', lineHeight:1, color:'#D4A843' }}>MONEY</div>
+              <div className="bebas" style={{ fontSize:'0.9rem', letterSpacing:'0.25em', color:'#444', marginTop:8 }}>LEVEL TWO</div>
+            </div>
+            <p style={{ color:'#555', fontSize:'0.75rem', lineHeight:1.9, maxWidth:520, margin:'0 auto 40px', textAlign:'center' }}>
+              This presentation is for educational purposes only and does not constitute investment advice, a solicitation, or a recommendation to buy or sell any security. Charlie Berman is not a registered investment advisor, broker-dealer, or licensed financial professional. No fiduciary or advisory relationship is created by this presentation. All examples are illustrative. Past performance is not indicative of future results. Please consult a registered fiduciary before making any investment decisions.
+            </p>
+            <div style={{ width:'100%', height:1, background:'linear-gradient(90deg,transparent,#D4A843 20%,#D4A843 80%,transparent)', marginBottom:24 }}/>
+            <p style={{ color:'#333', fontSize:'0.6rem', textTransform:'uppercase', letterSpacing:'0.2em' }}>
+              SMART MONEY&nbsp;&nbsp;|&nbsp;&nbsp;LEVEL TWO&nbsp;&nbsp;—&nbsp;&nbsp;FINANCIAL EDUCATION FOR NBA PLAYERS
+            </p>
+          </div>
+        </section>
+      );
+    }
+
+    // ═══════════════════════════════════════════════════
+    // APP
+    // ═══════════════════════════════════════════════════
+
+    function App() {
+      return (
+        <div>
+          <Nav />
+          <div style={{ background:'#1a0a00', borderBottom:'1px solid #D4A843', padding:'10px 20px', textAlign:'center' }}>
+            <p style={{ color:'#D4A843', fontSize:'0.72rem', letterSpacing:'0.08em', textTransform:'uppercase', margin:0, lineHeight:1.5 }}>
+              <strong>Disclaimer:</strong> This presentation is for <strong>educational purposes only</strong> and does not constitute investment advice, a solicitation, or a recommendation to buy or sell any security. Charlie Berman is not a registered investment advisor, broker-dealer, or licensed financial professional. No fiduciary or advisory relationship is created by attending this presentation. All examples are illustrative. Past performance is not indicative of future results. <strong>Please consult a registered fiduciary before making any investment decisions.</strong>
+            </p>
+          </div>
+          <Hero />
+          <CourtDivider />
+          <SectionFoundation />
+          <CourtDivider />
+          <SectionCareerArc />
+          <CourtDivider />
+          <SectionRealEstate />
+          <CourtDivider />
+          <SectionPitchRoom />
+          <CourtDivider />
+          <SectionProtection />
+          <CourtDivider />
+          <SectionTeamAndCircle />
+          <CourtDivider />
+          <SectionSecondChapter />
+          <Closing />
+        </div>
+      );
+    }
+
+    ReactDOM.render(React.createElement(App), document.getElementById('root'));
+  </script>
+</body>
+</html>

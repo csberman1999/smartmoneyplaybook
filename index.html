@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Playbook | Smart Money</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0A0A0F;
+    --surface:  #111118;
+    --border:   #252535;
+    --border2:  #1a1a22;
+    --gold:     #D4A843;
+    --gold-dim: #c49a38;
+    --text:     #E8E8E8;
+    --muted:    #6B6B80;
+    --faint:    #3a3a50;
+    --red:      #e05252;
+    --nfl-text: #86EFAC; --nfl-border: #16a34a; --nfl-bg: #052e16;
+    --nba-text: #93C5FD; --nba-border: #2563eb; --nba-bg:  #0c1a3a;
+    --both-text:#C4B5FD; --both-border:#7c3aed; --both-bg: #1a0f30;
+  }
+
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
+
+  /* ── grid bg ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.012) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.012) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  /* ── screens ── */
+  .screen { position: fixed; inset: 0; z-index: 1; display: flex; flex-direction: column; }
+  .screen.hidden { display: none; }
+
+  /* ═══════════════════════════════════════
+     LOGIN
+  ═══════════════════════════════════════ */
+  #login {
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+
+  .login-box {
+    width: 100%;
+    max-width: 360px;
+  }
+
+  .wordmark {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+  .wordmark-sup {
+    display: block;
+    color: var(--gold);
+    font-size: .65rem;
+    font-weight: 700;
+    letter-spacing: .3em;
+    text-transform: uppercase;
+    margin-bottom: .5rem;
+  }
+  .wordmark-title {
+    font-size: clamp(2.2rem, 8vw, 3rem);
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -.02em;
+    line-height: 1;
+  }
+  .wordmark-sub {
+    margin-top: .5rem;
+    font-size: .8rem;
+    color: var(--muted);
+    letter-spacing: .05em;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 2rem;
+  }
+
+  .field-label {
+    display: block;
+    font-size: .65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .2em;
+    color: var(--muted);
+    margin-bottom: .5rem;
+  }
+
+  .field-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: .5rem;
+    padding: .75rem 1rem;
+    font-size: .875rem;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .field-input::placeholder { color: var(--faint); }
+  .field-input:focus { border-color: var(--gold); }
+
+  .error-msg {
+    color: var(--red);
+    font-size: .75rem;
+    margin-top: .75rem;
+    min-height: 1rem;
+  }
+
+  .btn-primary {
+    margin-top: 1.25rem;
+    width: 100%;
+    background: var(--gold);
+    color: #000;
+    font-weight: 700;
+    font-size: .875rem;
+    letter-spacing: .05em;
+    border: none;
+    border-radius: .5rem;
+    padding: .8rem 1rem;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .btn-primary:hover { background: var(--gold-dim); }
+
+  .login-footer {
+    margin-top: 1.5rem;
+    text-align: center;
+    font-size: .7rem;
+    color: var(--faint);
+    line-height: 1.6;
+  }
+
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20%      { transform: translateX(-6px); }
+    40%      { transform: translateX(6px); }
+    60%      { transform: translateX(-4px); }
+    80%      { transform: translateX(4px); }
+  }
+  .shake { animation: shake .4s ease; }
+
+  /* ═══════════════════════════════════════
+     DASHBOARD
+  ═══════════════════════════════════════ */
+  #dashboard {
+    overflow-y: auto;
+  }
+
+  .dash-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border2);
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    flex-shrink: 0;
+  }
+
+  .dash-brand { display: flex; flex-direction: column; gap: .15rem; }
+  .dash-brand-sup { font-size: .6rem; font-weight: 700; letter-spacing: .25em; text-transform: uppercase; color: var(--gold); }
+  .dash-brand-title { font-size: 1.1rem; font-weight: 800; color: #fff; letter-spacing: -.01em; }
+
+  .btn-logout {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: .7rem;
+    padding: .35rem .75rem;
+    border-radius: .375rem;
+    cursor: pointer;
+    transition: border-color .15s, color .15s;
+    letter-spacing: .05em;
+  }
+  .btn-logout:hover { border-color: var(--border); color: var(--text); }
+
+  .dash-body {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 3rem;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-bottom: 1.25rem;
+  }
+  .section-header + .level-grid { margin-bottom: 2.5rem; }
+
+  .track-badge {
+    font-size: .6rem;
+    font-weight: 700;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    padding: .25rem .6rem;
+    border-radius: .25rem;
+    border: 1px solid;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .track-badge.nfl  { color: var(--nfl-text);  border-color: var(--nfl-border);  background: var(--nfl-bg); }
+  .track-badge.nba  { color: var(--nba-text);  border-color: var(--nba-border);  background: var(--nba-bg); }
+  .track-badge.both { color: var(--both-text); border-color: var(--both-border); background: var(--both-bg); }
+
+  .section-line { flex: 1; height: 1px; background: var(--border2); }
+
+  .level-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: .875rem;
+  }
+
+  .level-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: .75rem;
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    position: relative;
+    overflow: hidden;
+    text-align: left;
+    color: inherit;
+  }
+  .level-card:hover { border-color: var(--gold); background: #14140e; }
+  .level-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: var(--gold);
+    opacity: 0;
+    transition: opacity .2s;
+  }
+  .level-card:hover::before { opacity: 1; }
+
+  .card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: .875rem;
+  }
+  .level-num {
+    width: 2rem; height: 2rem;
+    background: #1a1a26;
+    border: 1px solid var(--border);
+    border-radius: .4rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .7rem;
+    font-weight: 700;
+    color: var(--muted);
+  }
+
+  .card-title {
+    font-size: .82rem;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.35;
+    margin-bottom: .5rem;
+  }
+  .level-card:hover .card-title { color: #fff; }
+
+  .card-desc {
+    font-size: .72rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .card-cta {
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+    margin-top: .875rem;
+    font-size: .7rem;
+    font-weight: 600;
+    color: var(--gold);
+    opacity: 0;
+    transition: opacity .2s;
+  }
+  .level-card:hover .card-cta { opacity: 1; }
+
+  .dash-footer {
+    border-top: 1px solid var(--border2);
+    padding: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .dash-footer span { font-size: .65rem; color: var(--faint); letter-spacing: .05em; }
+
+  /* ═══════════════════════════════════════
+     VIEWER
+  ═══════════════════════════════════════ */
+  #viewer {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .viewer-bar {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: 0 1rem;
+    height: 3.25rem;
+    border-bottom: 1px solid var(--border2);
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+
+  .btn-back {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: .8rem;
+    cursor: pointer;
+    padding: .35rem .5rem;
+    border-radius: .375rem;
+    transition: color .15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .btn-back:hover { color: var(--text); }
+
+  .viewer-divider { width: 1px; height: 1.25rem; background: var(--border); }
+
+  .viewer-title {
+    font-size: .8rem;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .viewer-frame-wrap {
+    flex: 1;
+    padding: .75rem;
+    min-height: 0;
+  }
+
+  #level-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: .625rem;
+    background: var(--bg);
+    display: block;
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ LOGIN ══════════════ -->
+<div id="login" class="screen">
+  <div class="login-box">
+    <div class="wordmark">
+      <span class="wordmark-sup">Smart Money</span>
+      <div class="wordmark-title">THE PLAYBOOK</div>
+      <div class="wordmark-sub">Financial Literacy Curriculum</div>
+    </div>
+
+    <div class="card" id="login-card">
+      <label class="field-label" for="pw-input">Access Code</label>
+      <input
+        id="pw-input"
+        class="field-input"
+        type="password"
+        placeholder="Enter your access code"
+        autocomplete="off"
+      />
+      <div class="error-msg" id="pw-error"></div>
+      <button class="btn-primary" id="pw-submit">Access Curriculum</button>
+    </div>
+
+    <p class="login-footer">
+      Access is granted by your coach.<br>Contact them if you need your code.
+    </p>
+  </div>
+</div>
+
+<!-- ══════════════ DASHBOARD ══════════════ -->
+<div id="dashboard" class="screen hidden">
+
+  <div class="dash-header">
+    <div class="dash-brand">
+      <span class="dash-brand-sup">Smart Money</span>
+      <span class="dash-brand-title">THE PLAYBOOK</span>
+    </div>
+    <button class="btn-logout" id="btn-logout">Sign out</button>
+  </div>
+
+  <div class="dash-body">
+
+    <!-- NFL -->
+    <div class="section-header">
+      <span class="track-badge nfl">NFL Track</span>
+      <div class="section-line"></div>
+    </div>
+    <div class="level-grid" id="grid-nfl"></div>
+
+    <!-- NBA -->
+    <div class="section-header">
+      <span class="track-badge nba">NBA Track</span>
+      <div class="section-line"></div>
+    </div>
+    <div class="level-grid" id="grid-nba"></div>
+
+    <!-- All Athletes -->
+    <div class="section-header">
+      <span class="track-badge both">NFL · NBA</span>
+      <div class="section-line"></div>
+    </div>
+    <div class="level-grid" id="grid-both"></div>
+
+  </div>
+
+  <div class="dash-footer">
+    <span>Smart Money · Financial Literacy</span>
+    <span>For educational purposes only</span>
+  </div>
+
+</div>
+
+<!-- ══════════════ VIEWER ══════════════ -->
+<div id="viewer" class="screen hidden">
+
+  <div class="viewer-bar">
+    <button class="btn-back" id="btn-back">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>
+      Dashboard
+    </button>
+    <div class="viewer-divider"></div>
+    <span class="viewer-title" id="viewer-title"></span>
+  </div>
+
+  <div class="viewer-frame-wrap">
+    <iframe id="level-frame" src="" title="Level content" allow="fullscreen"></iframe>
+  </div>
+
+</div>
+
+<script>
+  // ─── CHANGE THIS to your chosen password ────────────────────────────
+  var PASSWORD = 'Reunion!!!';
+  // ────────────────────────────────────────────────────────────────────
+
+  var SESSION_KEY = 'sm_auth';
+
+  var levels = [
+    {
+      id: 'nfl-intro', order: 1, track: 'nfl',
+      title: 'Level 1 — NFL Financial Literacy Introduction',
+      desc:  'Foundational financial literacy for NFL players — where the money goes, tax basics, the first-check reality.',
+      url:   'decks/index-nfl-players.html'
+    },
+    {
+      id: 'nba-intro', order: 1, track: 'nba',
+      title: 'Level 1 — NBA Financial Literacy Introduction',
+      desc:  'Foundational financial literacy for NBA players — where the money goes, tax basics, the first-check reality.',
+      url:   'decks/index-nba-players.html'
+    },
+    {
+      id: 'foundation', order: 2, track: 'both',
+      title: 'Level 2 — The Foundation',
+      desc:  'Budgeting, compounding, inflation, and the core concepts every long-term financial plan is built on.',
+      url:   'decks/index-nba-level2.html'
+    },
+    {
+      id: 'tax-wealth', order: 3, track: 'both',
+      title: 'Level 3 — Tax and Wealth Structuring',
+      desc:  'State tax positioning, entity concepts, and how contract structure interacts with long-term wealth.',
+      url:   'decks/index-level3.html'
+    },
+    {
+      id: 'alternatives', order: 4, track: 'both',
+      title: 'Level 4 — Alternative Investments & Private Markets',
+      desc:  'How private equity, venture, and alternative structures actually work — and what to watch for.',
+      url:   'decks/index-level4.html'
+    },
+    {
+      id: 'business', order: 5, track: 'both',
+      title: 'Level 5 — Building a Business',
+      desc:  'From NIL/marketing income to standalone ventures — the second-act groundwork.',
+      url:   'decks/index-level5.html'
+    },
+    {
+      id: 'legacy', order: 6, track: 'both',
+      title: 'Level 6 — Legacy & Generational Wealth',
+      desc:  'Estate concepts, generational transfer, and planning for a life and family beyond the career.',
+      url:   'decks/index-level6.html'
+    },
+  ];
+
+  // ── utils ──
+  function show(id) { document.getElementById(id).classList.remove('hidden'); }
+  function hide(id) { document.getElementById(id).classList.add('hidden'); }
+
+  function isLoggedIn() { return sessionStorage.getItem(SESSION_KEY) === '1'; }
+  function setLoggedIn() { sessionStorage.setItem(SESSION_KEY, '1'); }
+  function clearLogin()  { sessionStorage.removeItem(SESSION_KEY); }
+
+  // ── card builder ──
+  function buildCard(level) {
+    var card = document.createElement('button');
+    card.className = 'level-card';
+    card.innerHTML =
+      '<div class="card-top">' +
+        '<span class="level-num">' + level.order + '</span>' +
+        '<span class="track-badge ' + level.track + '">' +
+          (level.track === 'nfl' ? 'NFL' : level.track === 'nba' ? 'NBA' : 'NFL · NBA') +
+        '</span>' +
+      '</div>' +
+      '<div class="card-title">' + level.title + '</div>' +
+      '<div class="card-desc">' + level.desc + '</div>' +
+      '<div class="card-cta">Open module ' +
+        '<svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>' +
+      '</div>';
+
+    card.addEventListener('click', function() { openLevel(level); });
+    return card;
+  }
+
+  function renderDashboard() {
+    var nfl  = document.getElementById('grid-nfl');
+    var nba  = document.getElementById('grid-nba');
+    var both = document.getElementById('grid-both');
+    nfl.innerHTML = ''; nba.innerHTML = ''; both.innerHTML = '';
+
+    levels.forEach(function(level) {
+      var card = buildCard(level);
+      if (level.track === 'nfl')       nfl.appendChild(card);
+      else if (level.track === 'nba')  nba.appendChild(card);
+      else                             both.appendChild(card);
+    });
+  }
+
+  // ── routing ──
+  function goLogin() {
+    hide('dashboard'); hide('viewer');
+    show('login');
+  }
+
+  function goDashboard() {
+    hide('login'); hide('viewer');
+    var frame = document.getElementById('level-frame');
+    frame.src = '';
+    show('dashboard');
+  }
+
+  function openLevel(level) {
+    document.getElementById('viewer-title').textContent = level.title;
+    document.getElementById('level-frame').src = level.url;
+    hide('login'); hide('dashboard');
+    show('viewer');
+  }
+
+  // ── login logic ──
+  document.getElementById('pw-submit').addEventListener('click', tryLogin);
+  document.getElementById('pw-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') tryLogin();
+  });
+
+  function tryLogin() {
+    var val = document.getElementById('pw-input').value.trim();
+    if (val === PASSWORD) {
+      setLoggedIn();
+      document.getElementById('pw-error').textContent = '';
+      document.getElementById('pw-input').value = '';
+      renderDashboard();
+      goDashboard();
+    } else {
+      document.getElementById('pw-error').textContent = 'Incorrect access code. Check with your coach.';
+      document.getElementById('pw-input').value = '';
+      var card = document.getElementById('login-card');
+      card.classList.remove('shake');
+      void card.offsetWidth; // reflow to restart animation
+      card.classList.add('shake');
+    }
+  }
+
+  document.getElementById('btn-logout').addEventListener('click', function() {
+    clearLogin();
+    goLogin();
+  });
+
+  document.getElementById('btn-back').addEventListener('click', goDashboard);
+
+  // ── init ──
+  if (isLoggedIn()) {
+    renderDashboard();
+    goDashboard();
+  } else {
+    goLogin();
+  }
+</script>
+
+</body>
+</html>

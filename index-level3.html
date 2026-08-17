@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Money | Level Three — Tax & Wealth Structuring</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <script src="/vendor/react.min.js" crossorigin></script>
+  <script src="/vendor/react-dom.min.js" crossorigin></script>
+  <script src="/vendor/prop-types.min.js" crossorigin></script>
+  <script src="/vendor/recharts.js" crossorigin></script>
+  <script src="/vendor/babel.min.js"></script>
+  <script>
+  (function() {
+    Babel.registerPreset("react", function() {
+      return { plugins: [
+        [Babel.availablePlugins["transform-react-jsx"], { runtime: "classic" }],
+        Babel.availablePlugins["transform-react-display-name"]
+      ]};
+    });
+  })();
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: #080808; color: #E8E8E8; font-family: 'Open Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #111; }
+    ::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #D4A843; }
+    .bebas { font-family: 'Bebas Neue', cursive; }
+    .container { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+    @media (min-width: 640px) { .container { padding: 0 24px; } }
+    .card { background: #111111; border-radius: 12px; border: 1px solid #1e1e1e; padding: 20px; }
+    .section-heading { font-family: 'Bebas Neue', cursive; font-size: clamp(2.5rem, 8vw, 4.5rem); letter-spacing: 0.04em; line-height: 1; color: white; text-transform: uppercase; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } .grid-3 { grid-template-columns: 1fr; } }
+    button { font-family: 'Open Sans', sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect } = React;
+
+    function CourtDivider() {
+      return (
+        <div style={{ position:'relative', height:48, overflow:'hidden', display:'flex', alignItems:'center' }}>
+          <svg viewBox="0 0 800 48" style={{ position:'absolute', inset:0, width:'100%', height:'100%', opacity:0.06 }}>
+            <line x1="400" y1="0" x2="400" y2="48" stroke="#D4A843" strokeWidth="2"/>
+            <circle cx="400" cy="24" r="20" stroke="#D4A843" strokeWidth="2" fill="none"/>
+            <path d="M 150 0 Q 200 24 150 48" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+            <path d="M 650 0 Q 600 24 650 48" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+            <rect x="120" y="8" width="70" height="32" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+            <rect x="610" y="8" width="70" height="32" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+          </svg>
+          <div style={{ width:'100%', height:1, background:'linear-gradient(90deg,transparent,#D4A843 20%,#D4A843 80%,transparent)' }}/>
+        </div>
+      );
+    }
+
+    function SectionLabel({ num, title }) {
+      return (
+        <div style={{ marginBottom:40 }}>
+          <p className="bebas" style={{ color:'#D4A843', letterSpacing:'0.1em', fontSize:'1.1rem', marginBottom:8 }}>Section {num}</p>
+          <h2 className="section-heading">{title}</h2>
+          <div style={{ width:64, height:3, background:'#D4A843', borderRadius:2, marginTop:14 }}/>
+        </div>
+      );
+    }
+
+    function ComplianceNote({ children }) {
+      return (
+        <div style={{ borderLeft:'4px solid #D4A843', background:'#0D0D0D', padding:'14px 18px', borderRadius:'0 8px 8px 0', fontSize:'0.78rem', color:'#777', lineHeight:1.7, marginTop:32 }}>
+          <strong style={{ color:'#D4A843' }}>Education note: </strong>{children}
+        </div>
+      );
+    }
+
+    const SECTIONS = [
+      { id:'tax-reality',   label:'The Tax Reality' },
+      { id:'entities',      label:'Business Entities' },
+      { id:'deferred-comp', label:'Deferred Comp' },
+      { id:'trusts',        label:'Trust Structures' },
+      { id:'tax-accounts',  label:'Tax-Adv. Accounts' },
+      { id:'estate',        label:'Estate Planning' },
+      { id:'tax-team',      label:'Your Tax Team' },
+    ];
+
+    function Nav() {
+      const [active, setActive] = useState('tax-reality');
+      useEffect(() => {
+        const obs = new IntersectionObserver(entries => { entries.forEach(e => { if (e.isIntersecting) setActive(e.target.id); }); }, { threshold: 0.3 });
+        SECTIONS.forEach(({ id }) => { const el = document.getElementById(id); if (el) obs.observe(el); });
+        return () => obs.disconnect();
+      }, []);
+      const scrollTo = id => document.getElementById(id)?.scrollIntoView({ behavior:'smooth' });
+      return (
+        <nav style={{ position:'sticky', top:0, zIndex:50, width:'100%', background:'rgba(8,8,8,0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid #222' }}>
+          <div className="container">
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height:56, gap:8 }}>
+              <div style={{ display:'flex', flexDirection:'column', lineHeight:1 }}>
+                <span className="bebas" style={{ color:'#D4A843', letterSpacing:'0.1em', fontSize:'1.2rem' }}>SMART MONEY</span>
+                <span style={{ color:'#444', fontSize:'0.55rem', textTransform:'uppercase', letterSpacing:'0.15em', marginTop:2 }}>Level Three</span>
+              </div>
+              <div style={{ display:'flex', gap:2, flexWrap:'wrap', justifyContent:'flex-end' }}>
+                {SECTIONS.map(({ id, label }) => (
+                  <button key={id} onClick={() => scrollTo(id)} style={{ padding:'4px 10px', fontSize:'0.63rem', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em', color: active===id ? '#D4A843' : '#555', background:'none', border:'none', borderBottom: active===id ? '2px solid #D4A843' : '2px solid transparent', cursor:'pointer', whiteSpace:'nowrap' }}>{label}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </nav>
+      );
+    }
+
+    function Hero() {
+      const [vis, setVis] = useState(false);
+      useEffect(() => { setTimeout(() => setVis(true), 100); }, []);
+      return (
+        <section style={{ minHeight:'60vh', display:'flex', flexDirection:'column', justifyContent:'center', padding:'80px 0 60px', background:'radial-gradient(ellipse at 50% 0%, #1a1200 0%, #080808 65%)' }}>
+          <div className="container">
+            <div style={{ opacity:vis?1:0, transform:vis?'translateY(0)':'translateY(24px)', transition:'all 0.8s ease' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20 }}>
+                <div style={{ width:40, height:2, background:'#D4A843' }}/>
+                <span className="bebas" style={{ color:'#D4A843', letterSpacing:'0.2em', fontSize:'0.9rem' }}>LEVEL THREE</span>
+              </div>
+              <h1 className="bebas" style={{ fontSize:'clamp(3rem,12vw,7rem)', letterSpacing:'0.04em', lineHeight:0.9, color:'white', marginBottom:24 }}>Tax &<br/>Wealth<br/>Structuring</h1>
+              <p style={{ color:'#888', fontSize:'clamp(0.9rem,2vw,1.1rem)', maxWidth:520, lineHeight:1.8, marginBottom:40 }}>
+                Earning it is only half the game. How wealth is structured, timed, and protected determines how much of it survives — for you and for the people who come after you.
+              </p>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:24 }}>
+                {[{ num:'37%', label:'Top federal marginal rate' }, { num:'50%+', label:'Combined top federal + state rate' }, { num:'2026', label:'Estate exemption sunset' }].map(({ num, label }) => (
+                  <div key={label}>
+                    <div className="bebas" style={{ color:'#D4A843', fontSize:'2rem', letterSpacing:'0.04em', lineHeight:1 }}>{num}</div>
+                    <div style={{ color:'#444', fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.08em', marginTop:4 }}>{label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    function Section1() {
+      const [income, setIncome] = useState(5);
+      const brackets = [
+        { min:0, max:11600, rate:0.10 }, { min:11600, max:47150, rate:0.12 },
+        { min:47150, max:100525, rate:0.22 }, { min:100525, max:191950, rate:0.24 },
+        { min:191950, max:243725, rate:0.32 }, { min:243725, max:609350, rate:0.35 },
+        { min:609350, max:Infinity, rate:0.37 },
+      ];
+      const calcTax = inc => { let tax = 0; for (const b of brackets) { if (inc <= b.min) break; tax += (Math.min(inc, b.max) - b.min) * b.rate; } return tax; };
+      const gross = income * 1e6;
+      const fed = calcTax(gross);
+      const eff = (fed / gross * 100).toFixed(1);
+      const marg = gross > 609350 ? 37 : gross > 243725 ? 35 : 32;
+      const fmt = n => n >= 1e6 ? `$${(n/1e6).toFixed(2)}M` : `$${(n/1000).toFixed(0)}K`;
+      return (
+        <section id="tax-reality" style={{ padding:'80px 0' }}>
+          <div className="container">
+            <SectionLabel num="01" title="The Tax Reality" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              A professional athlete's income is concentrated, short-lived, and earned in multiple states. Understanding how taxes actually work is the first step to not overpaying them.
+            </p>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>Marginal vs. Effective Rate</div>
+              <p style={{ color:'#888', marginBottom:24, fontSize:'0.85rem', lineHeight:1.8 }}>When people say a player "pays 37% in taxes," they're wrong. You pay 37% only on income above $609,350. Every dollar below that is taxed at a lower rate. The effective rate is what you actually pay — and it's always lower than the marginal rate.</p>
+              <div className="card" style={{ marginBottom:24, padding:'32px' }}>
+                <div style={{ marginBottom:20 }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
+                    <span style={{ color:'#888', fontSize:'0.8rem' }}>Annual Income</span>
+                    <span className="bebas" style={{ color:'#D4A843', fontSize:'1.1rem' }}>${income}M</span>
+                  </div>
+                  <input type="range" min={1} max={50} step={0.5} value={income} onChange={e => setIncome(Number(e.target.value))} style={{ width:'100%', accentColor:'#D4A843' }} />
+                </div>
+                <div className="grid-3" style={{ marginBottom:16 }}>
+                  {[{ val:`${marg}%`, label:'Marginal Rate', color:'#D4A843' }, { val:`${eff}%`, label:'Effective Rate', color:'#44AA66' }, { val:fmt(fed), label:'Federal Tax (est.)', color:'#CC3333' }].map(({ val, label, color }) => (
+                    <div key={label} style={{ textAlign:'center', padding:'16px', background:'#0d0d0d', borderRadius:8, border:'1px solid #1a1a1a' }}>
+                      <div className="bebas" style={{ color, fontSize:'2rem', letterSpacing:'0.04em' }}>{val}</div>
+                      <div style={{ color:'#555', fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.08em', marginTop:4 }}>{label}</div>
+                    </div>
+                  ))}
+                </div>
+                <p style={{ color:'#444', fontSize:'0.72rem', lineHeight:1.7 }}>Federal income tax only. Excludes state, FICA, and Medicare. Single filer, 2024 brackets. Illustration only.</p>
+              </div>
+            </div>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>The Jock Tax</div>
+              <p style={{ color:'#888', marginBottom:24, fontSize:'0.85rem', lineHeight:1.8 }}>Most professional athletes pay taxes in multiple states — every state where they play an away game. The allocation is based on duty days: days worked in each state as a proportion of total working days.</p>
+              <div className="grid-2" style={{ marginBottom:20 }}>
+                <div className="card" style={{ padding:'24px' }}>
+                  <div className="bebas" style={{ color:'#D4A843', fontSize:'1.1rem', letterSpacing:'0.04em', marginBottom:14 }}>How It's Calculated</div>
+                  {[{ step:'01', text:'Count total duty days (practice + games + travel in some states)' }, { step:'02', text:'Count duty days spent in each away state' }, { step:'03', text:'Divide: state days ÷ total days = % of income allocated there' }, { step:'04', text:'Pay that state\'s income tax rate on that % of income' }].map(({ step, text }) => (
+                    <div key={step} style={{ display:'flex', gap:12, marginBottom:12, alignItems:'flex-start' }}>
+                      <span className="bebas" style={{ color:'#D4A843', fontSize:'1.1rem', flexShrink:0 }}>{step}</span>
+                      <p style={{ color:'#777', fontSize:'0.78rem', lineHeight:1.6, margin:0 }}>{text}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="card" style={{ padding:'24px' }}>
+                  <div className="bebas" style={{ color:'#D4A843', fontSize:'1.1rem', letterSpacing:'0.04em', marginBottom:14 }}>States to Watch</div>
+                  {[{ state:'California', rate:'13.3%', note:'Highest state income tax. Home to multiple teams.' }, { state:'New York', rate:'10.9%', note:'State + NYC city tax can push combined rate above 14%.' }, { state:'New Jersey', rate:'10.75%', note:'Giants and Jets both play here.' }, { state:'Texas', rate:'0%', note:'No state income tax. Major NFL and NBA presence.' }, { state:'Florida', rate:'0%', note:'No state income tax. Growing athlete residency destination.' }].map(({ state, rate, note }) => (
+                    <div key={state} style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', padding:'8px 0', borderBottom:'1px solid #161616' }}>
+                      <div><div style={{ color:'white', fontSize:'0.8rem', fontWeight:600 }}>{state}</div><div style={{ color:'#555', fontSize:'0.7rem', lineHeight:1.5 }}>{note}</div></div>
+                      <span className="bebas" style={{ color: rate==='0%' ? '#44AA66' : '#CC3333', fontSize:'1rem', flexShrink:0, marginLeft:12 }}>{rate}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="card" style={{ background:'linear-gradient(135deg,#0a0a1a,#0e0e0e)', border:'1px solid #4488CC40', padding:'24px' }}>
+                <div className="bebas" style={{ color:'#4488CC', fontSize:'1rem', letterSpacing:'0.08em', marginBottom:8 }}>Residency Strategy</div>
+                <p style={{ color:'#aaa', fontSize:'0.85rem', lineHeight:1.8, margin:0 }}>Where a player establishes legal domicile matters enormously. Living in Florida or Texas eliminates state income tax on base salary. But residency must be genuine — states audit aggressively. Days in state, driver's license, voter registration, and primary home are all factors. A CPA specializing in athlete taxation should be involved before any residency change.</p>
+              </div>
+            </div>
+            {/* SALT / Tax Bite Comparison */}
+            <div style={{ marginTop:40, marginBottom:32 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>Where the Tax Bites: $1M Gross Income</div>
+              <p style={{ color:'#888', fontSize:'0.82rem', marginBottom:24, lineHeight:1.8 }}>
+                The SALT cap (2017 Tax Cuts and Jobs Act) limits the state and local tax deduction on federal returns to $10,000 — turning high-state-tax residency into a compounding cost at the federal level too. Here is what the same $1M in gross income looks like across three jurisdictions.
+              </p>
+              {[
+                { label:'Florida / Texas', sublabel:'No state income tax', totalPct:32.8, takeHome:672000, segments:[{ label:'Federal', pct:32.8, color:'#D4A843' }] },
+                { label:'California', sublabel:'13.3% state rate', totalPct:47.5, takeHome:525000, segments:[{ label:'Federal', pct:32.8, color:'#D4A843' }, { label:'CA State', pct:11.0, color:'#E07020' }, { label:'SALT Penalty', pct:3.7, color:'#CC3333' }] },
+                { label:'New York + NYC', sublabel:'10.9% state + 3.9% city', totalPct:51.3, takeHome:487000, segments:[{ label:'Federal', pct:32.8, color:'#D4A843' }, { label:'NY State', pct:9.5, color:'#E07020' }, { label:'NYC City', pct:3.9, color:'#9966CC' }, { label:'SALT Penalty', pct:5.1, color:'#CC3333' }] },
+              ].map(function(scenario) {
+                return (
+                  <div key={scenario.label} className="card" style={{ padding:'20px 24px', marginBottom:10 }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:10 }}>
+                      <div>
+                        <span className="bebas" style={{ color:'white', fontSize:'1rem', letterSpacing:'0.04em' }}>{scenario.label}</span>
+                        <span style={{ color:'#444', fontSize:'0.68rem', textTransform:'uppercase', letterSpacing:'0.06em', marginLeft:10 }}>{scenario.sublabel}</span>
+                      </div>
+                      <div style={{ textAlign:'right' }}>
+                        <span className="bebas" style={{ color:'#44AA66', fontSize:'0.9rem', letterSpacing:'0.04em' }}>Take home: ${(scenario.takeHome/1000).toFixed(0)}K</span>
+                        <span style={{ color:'#CC3333', fontSize:'0.72rem', marginLeft:10 }}>{scenario.totalPct}% to taxes</span>
+                      </div>
+                    </div>
+                    <div style={{ height:28, borderRadius:4, overflow:'hidden', display:'flex', background:'#0d0d0d', marginBottom:10 }}>
+                      {scenario.segments.map(function(seg) {
+                        return seg.pct > 0 ? (
+                          <div key={seg.label} style={{ width:`${seg.pct}%`, background:seg.color, display:'flex', alignItems:'center', justifyContent:'center', transition:'width 0.3s' }}>
+                            {seg.pct >= 3 && <span style={{ fontSize:'0.58rem', color:'rgba(0,0,0,0.7)', fontWeight:700, whiteSpace:'nowrap' }}>{seg.pct}%</span>}
+                          </div>
+                        ) : null;
+                      })}
+                      <div style={{ flex:1, background:'#1a2a1a', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                        <span style={{ fontSize:'0.6rem', color:'#44AA66', fontWeight:600 }}>${(scenario.takeHome/1000).toFixed(0)}K kept</span>
+                      </div>
+                    </div>
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:12 }}>
+                      {scenario.segments.map(function(seg) {
+                        return (
+                          <div key={seg.label} style={{ display:'flex', alignItems:'center', gap:5 }}>
+                            <div style={{ width:8, height:8, borderRadius:2, background:seg.color, flexShrink:0 }}/>
+                            <span style={{ color:'#555', fontSize:'0.68rem' }}>{seg.label} {seg.pct}%</span>
+                          </div>
+                        );
+                      })}
+                      <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                        <div style={{ width:8, height:8, borderRadius:2, background:'#1a2a1a', flexShrink:0, border:'1px solid #44AA66' }}/>
+                        <span style={{ color:'#44AA66', fontSize:'0.68rem' }}>Take home {(100 - scenario.totalPct).toFixed(1)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              <div style={{ padding:'14px 18px', background:'#0d0d0d', borderRadius:8, borderLeft:'3px solid #CC3333', marginTop:8 }}>
+                <span style={{ color:'#CC3333', fontSize:'0.62rem', textTransform:'uppercase', letterSpacing:'0.08em', fontWeight:700 }}>SALT cap impact: </span>
+                <span style={{ color:'#666', fontSize:'0.78rem' }}>A NY+NYC resident earning $1M pays roughly $185K more in combined taxes than a Florida or Texas resident on the same income. The SALT cap alone adds $37–51K on top of the state/city tax because those state taxes can no longer be deducted federally.</span>
+              </div>
+            </div>
+            <ComplianceNote>Tax rates and brackets are for illustration and may not reflect the most current figures. Consult a CPA or tax attorney for individual tax planning.</ComplianceNote>
+          </div>
+        </section>
+      );
+    }
+
+    function Section2() {
+      const [open, setOpen] = useState(null);
+      const entities = [
+        { name:'LLC', color:'#D4A843', tagline:'Flexibility first', desc:'A Limited Liability Company provides personal liability protection with pass-through taxation by default. Income flows to the owner\'s personal return. No double taxation. Highly flexible — can be taxed as a sole proprietorship, partnership, S-Corp, or C-Corp.', pros:['Liability protection — personal assets shielded from business debts', 'Pass-through taxation by default — no double taxation', 'Minimal formality requirements compared to corporations', 'Flexible profit and loss allocation among members'], cons:['Self-employment tax applies to all net income by default', 'Must be properly maintained to preserve liability protection', 'Less recognized internationally than a corporation'], bestFor:'Image rights, licensing deals, endorsements, real estate holding, and as a base entity for most athletes.' },
+        { name:'S-Corp', color:'#44AA66', tagline:'The salary split strategy', desc:'An S-Corporation allows the owner to pay themselves a reasonable salary (subject to payroll/FICA tax) and take remaining profits as a distribution — which is NOT subject to self-employment tax. This "salary split" is the primary tax advantage.', pros:['Payroll tax savings on distributions above reasonable salary', 'Pass-through taxation — no double tax at entity level', 'More credibility with vendors, partners, and banks'], cons:['Requires formal payroll, quarterly filings, and a "reasonable salary"', '100 shareholder limit, one class of stock only', 'IRS scrutiny if salary is set unreasonably low', 'More administrative overhead than a plain LLC'], bestFor:'Athletes with $200K+ in net endorsement or business income where FICA savings on distributions are meaningful.' },
+        { name:'C-Corp', color:'#4488CC', tagline:'For builders with a long horizon', desc:'A C-Corporation is a separate taxable entity paying corporate tax (flat 21%) on retained earnings. Shareholders pay personal tax again on dividends — creating "double taxation." However, for athletes building real operating businesses, this structure has specific strategic advantages.', pros:['Flat 21% corporate tax rate on retained earnings', 'Unlimited shareholders and multiple classes of stock', 'Easier to raise institutional capital and issue equity to employees', 'QSBS exclusion — potentially exclude $10M+ in gains on qualifying stock'], cons:['Double taxation on profits distributed as dividends', 'Most complex structure to maintain', 'Not efficient for passive investment or simple income holding'], bestFor:'Athletes building operating businesses with scale ambitions, or for holding startup equity where the QSBS gain exclusion applies.' },
+      ];
+      return (
+        <section id="entities" style={{ padding:'80px 0', background:'#080808' }}>
+          <div className="container">
+            <SectionLabel num="02" title="Business Entities" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>Every professional athlete's financial life should run through at least one legal entity. Not for tax avoidance — for liability protection, income management, and long-term flexibility. The question isn't whether to have an entity. It's which one, and for what purpose.</p>
+            <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:40 }}>
+              {entities.map((e, i) => (
+                <div key={e.name} style={{ borderRadius:10, overflow:'hidden', cursor:'pointer', border:`1px solid ${open===i ? e.color+'40' : '#1a1a1a'}`, transition:'border-color 0.2s' }}>
+                  <div onClick={() => setOpen(open===i ? null : i)} style={{ padding:'18px 24px', display:'flex', justifyContent:'space-between', alignItems:'center', background: open===i ? `${e.color}08` : '#0d0d0d' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:16 }}>
+                      <span className="bebas" style={{ color:e.color, fontSize:'1.4rem', letterSpacing:'0.05em' }}>{e.name}</span>
+                      <span style={{ color:'#444', fontSize:'0.72rem', textTransform:'uppercase', letterSpacing:'0.08em' }}>{e.tagline}</span>
+                    </div>
+                    <span style={{ color:'#444', fontSize:'0.75rem' }}>{open===i ? '▲' : '▼'}</span>
+                  </div>
+                  {open===i && (
+                    <div style={{ padding:'4px 24px 24px', background:'#0a0a0a' }}>
+                      <p style={{ color:'#aaa', fontSize:'0.85rem', lineHeight:1.8, marginBottom:20, marginTop:16, paddingTop:16, borderTop:'1px solid #161616' }}>{e.desc}</p>
+                      <div className="grid-2" style={{ marginBottom:16 }}>
+                        <div>
+                          <p style={{ fontSize:'0.62rem', color:'#44AA66', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:10 }}>Advantages</p>
+                          {e.pros.map(p => (<div key={p} style={{ display:'flex', gap:8, marginBottom:8 }}><span style={{ color:'#44AA66', flexShrink:0 }}>+</span><span style={{ color:'#777', fontSize:'0.78rem', lineHeight:1.6 }}>{p}</span></div>))}
+                        </div>
+                        <div>
+                          <p style={{ fontSize:'0.62rem', color:'#CC3333', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:10 }}>Watch Out For</p>
+                          {e.cons.map(c => (<div key={c} style={{ display:'flex', gap:8, marginBottom:8 }}><span style={{ color:'#CC3333', flexShrink:0 }}>−</span><span style={{ color:'#777', fontSize:'0.78rem', lineHeight:1.6 }}>{c}</span></div>))}
+                        </div>
+                      </div>
+                      <div style={{ padding:'12px 16px', background:'#111', borderRadius:8, border:`1px solid ${e.color}20` }}>
+                        <span style={{ color:e.color, fontSize:'0.62rem', textTransform:'uppercase', letterSpacing:'0.1em', fontWeight:600 }}>Best for: </span>
+                        <span style={{ color:'#777', fontSize:'0.78rem' }}>{e.bestFor}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="card" style={{ background:'linear-gradient(135deg,#1a1200 0%,#111 100%)', border:'1px solid #D4A843', padding:'24px' }}>
+              <div className="bebas" style={{ color:'#D4A843', fontSize:'1rem', letterSpacing:'0.08em', marginBottom:10 }}>Most Athletes Need More Than One</div>
+              <p style={{ color:'#aaa', fontSize:'0.85rem', lineHeight:1.8, margin:0 }}>A common structure: one LLC for image rights and endorsements, a separate LLC for real estate holdings, and potentially an S-Corp election on the endorsement LLC to reduce self-employment tax. Entities should be matched to purpose — not set up once and forgotten.</p>
+            </div>
+            <ComplianceNote>Entity selection has significant legal and tax implications. Work with a CPA and business attorney to determine the right structure for any specific situation.</ComplianceNote>
+          </div>
+        </section>
+      );
+    }
+
+    function Section3() {
+      return (
+        <section id="deferred-comp" style={{ padding:'80px 0' }}>
+          <div className="container">
+            <SectionLabel num="03" title="Income Timing & Deferred Compensation" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>The same dollar earned at different times — or structured differently — can result in very different tax outcomes. Income timing is one of the most powerful levers in an athlete's financial plan.</p>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>The Core Principle</div>
+              <div className="grid-2" style={{ marginBottom:20 }}>
+                <div className="card" style={{ borderTop:'3px solid #CC3333', padding:'24px' }}>
+                  <div className="bebas" style={{ color:'#CC3333', fontSize:'1.1rem', letterSpacing:'0.04em', marginBottom:12 }}>High-Income Year</div>
+                  <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, marginBottom:12 }}>Peak contract year. Marginal rate at 37%. Every additional dollar is taxed at maximum rate. The worst time to receive large lump sums.</p>
+                  <div style={{ padding:'10px', background:'#0d0d0d', borderRadius:6 }}><div style={{ color:'#555', fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>$1M bonus received this year</div><div className="bebas" style={{ color:'#CC3333', fontSize:'1.2rem' }}>$370,000+ to taxes</div></div>
+                </div>
+                <div className="card" style={{ borderTop:'3px solid #44AA66', padding:'24px' }}>
+                  <div className="bebas" style={{ color:'#44AA66', fontSize:'1.1rem', letterSpacing:'0.04em', marginBottom:12 }}>Low-Income Year</div>
+                  <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, marginBottom:12 }}>Post-career or gap year. Marginal rate may be 22–24%. Same dollar deferred to this year is taxed at a much lower rate.</p>
+                  <div style={{ padding:'10px', background:'#0d0d0d', borderRadius:6 }}><div style={{ color:'#555', fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>$1M bonus deferred to low-income year</div><div className="bebas" style={{ color:'#44AA66', fontSize:'1.2rem' }}>$220,000–$240,000 to taxes</div></div>
+                </div>
+              </div>
+            </div>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>Signing Bonus Structure</div>
+              <p style={{ color:'#888', marginBottom:20, fontSize:'0.85rem', lineHeight:1.8 }}>Signing bonuses are fully taxable in the year received — unless structured otherwise. A $10M signing bonus taken as a lump sum creates an unnecessary tax event. There are better ways.</p>
+              <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                {[{ title:'Lump Sum', color:'#CC3333', body:'Full amount received immediately. Easiest for the team. Worst tax outcome for the player — all dollars land in the highest marginal bracket.' }, { title:'Installment Payments', color:'#D4A843', body:'Bonus spread over multiple years. Reduces the single-year tax hit. Teams are often willing — it\'s accounting-friendly. Requires specific contract language.' }, { title:'Deferred Compensation Plan', color:'#44AA66', body:'Income contractually deferred to a future year (often post-career) when the tax rate will be lower. Must be structured before the money is earned. Requires careful legal drafting and is not available in all contracts.' }].map(({ title, color, body }) => (
+                  <div key={title} className="card" style={{ borderLeft:`3px solid ${color}`, padding:'20px 24px' }}>
+                    <div className="bebas" style={{ color, fontSize:'1rem', letterSpacing:'0.04em', marginBottom:8 }}>{title}</div>
+                    <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, margin:0 }}>{body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ marginBottom:32 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>Retirement Accounts for Athletes</div>
+              <p style={{ color:'#888', marginBottom:20, fontSize:'0.85rem', lineHeight:1.8 }}>Beyond contract structure, athletes with self-employment income can access IRS-approved vehicles to defer income tax while the capital continues to compound.</p>
+              <div className="grid-2">
+                {[{ title:'Solo 401(k)', color:'#D4A843', body:'For self-employed athletes with endorsement or business income. Allows contributions as both employee AND employer — dramatically higher limits than a standard 401k. One of the most powerful tax deferral tools available.', limit:'2024 limit: up to $69,000/year' }, { title:'Defined Benefit Plan', color:'#4488CC', body:'A pension-style plan where contributions are actuarially determined. Because the benefit must be funded in a short window, annual contributions can reach $200,000–$300,000+ per year — far exceeding any other plan type.', limit:'2024 limit: actuarially determined, often $200K+' }].map(({ title, color, body, limit }) => (
+                  <div key={title} className="card" style={{ padding:'24px' }}>
+                    <div className="bebas" style={{ color, fontSize:'1.1rem', letterSpacing:'0.04em', marginBottom:12 }}>{title}</div>
+                    <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, marginBottom:12 }}>{body}</p>
+                    <div style={{ padding:'8px 12px', background:'#0d0d0d', borderRadius:6, borderLeft:`2px solid ${color}` }}><p style={{ color:'#555', fontSize:'0.7rem', lineHeight:1.5, margin:0 }}>{limit}</p></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <ComplianceNote>Deferred compensation arrangements are subject to IRC Section 409A — violations result in immediate taxation plus a 20% penalty. All deferral structures must be established by an attorney before the compensation is earned.</ComplianceNote>
+          </div>
+        </section>
+      );
+    }
+
+    function Section4() {
+      const [open, setOpen] = useState(null);
+      const trusts = [
+        { name:'Revocable Living Trust', color:'#D4A843', when:'Standard estate planning for most', body:'The grantor creates the trust, transfers assets into it, and can modify or revoke it at any time. Assets in a revocable trust avoid probate — the court-supervised distribution process that is public, slow, and expensive.', does:'Avoids probate. Provides seamless asset transfer at death. Names a successor trustee to manage assets if incapacitated.', doesnt:'Does NOT protect assets from creditors. Does NOT reduce estate taxes. Assets remain part of your taxable estate.' },
+        { name:'Irrevocable Trust', color:'#4488CC', when:'Asset protection and estate tax reduction', body:'Once assets are transferred in, the grantor gives up control — and in exchange gains significant protections. Assets are generally no longer part of the taxable estate and are protected from future creditors after the applicable lookback period.', does:'Removes assets from taxable estate. Protects assets from future creditors. Can hold life insurance outside the estate (ILIT).', doesnt:'Cannot be easily reversed. Grantor loses direct control of assets.' },
+        { name:'Domestic Asset Protection Trust (DAPT)', color:'#44AA66', when:'Self-settled asset protection', body:'A DAPT allows the grantor to be a discretionary beneficiary of their own irrevocable trust — providing asset protection while potentially still benefiting from the assets. Available in specific states including Nevada, South Dakota, and Delaware.', does:'Protects assets from future creditors. Grantor can remain a discretionary beneficiary. Useful for high-liability professions.', doesnt:'Must be domiciled in a DAPT-friendly state. Does not protect against existing creditors or bankruptcy in all cases.' },
+        { name:'Dynasty Trust', color:'#9966CC', when:'Multi-generational wealth transfer', body:'Designed to last multiple generations — often 100+ years in states with no rule against perpetuities. Assets placed in a dynasty trust pass to children, grandchildren, and beyond while avoiding estate tax at each generational transfer.', does:'Avoids estate tax at each generation. Provides long-term asset protection. Keeps wealth within a defined family structure for decades.', doesnt:'Requires careful governance. Less flexible once established. Must be in a state that allows long-duration trusts.' },
+      ];
+      return (
+        <section id="trusts" style={{ padding:'80px 0', background:'#080808' }}>
+          <div className="container">
+            <SectionLabel num="04" title="Trust Structures" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>A trust is a legal arrangement where one party (the trustee) holds assets for the benefit of another (the beneficiary). For professional athletes, trusts solve three specific problems: probate avoidance, asset protection, and estate tax reduction. The type of trust determines which problem it solves.</p>
+            <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:40 }}>
+              {trusts.map((t, i) => (
+                <div key={t.name} style={{ borderRadius:10, overflow:'hidden', cursor:'pointer', border:`1px solid ${open===i ? t.color+'40' : '#1a1a1a'}`, transition:'border-color 0.2s' }}>
+                  <div onClick={() => setOpen(open===i ? null : i)} style={{ padding:'18px 24px', display:'flex', justifyContent:'space-between', alignItems:'center', background: open===i ? `${t.color}08` : '#0d0d0d' }}>
+                    <div><span className="bebas" style={{ color:t.color, fontSize:'1.1rem', letterSpacing:'0.05em' }}>{t.name}</span><span style={{ color:'#444', fontSize:'0.7rem', marginLeft:12 }}>— {t.when}</span></div>
+                    <span style={{ color:'#444', fontSize:'0.75rem' }}>{open===i ? '▲' : '▼'}</span>
+                  </div>
+                  {open===i && (
+                    <div style={{ padding:'4px 24px 24px', background:'#0a0a0a' }}>
+                      <p style={{ color:'#aaa', fontSize:'0.85rem', lineHeight:1.8, marginBottom:16, marginTop:16, paddingTop:16, borderTop:'1px solid #161616' }}>{t.body}</p>
+                      <div className="grid-2">
+                        <div><p style={{ fontSize:'0.62rem', color:'#44AA66', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:8 }}>What it does</p><p style={{ color:'#777', fontSize:'0.78rem', lineHeight:1.7 }}>{t.does}</p></div>
+                        <div><p style={{ fontSize:'0.62rem', color:'#CC3333', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:8 }}>What it doesn't do</p><p style={{ color:'#777', fontSize:'0.78rem', lineHeight:1.7 }}>{t.doesnt}</p></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="card" style={{ background:'linear-gradient(135deg,#1a1200,#111)', border:'1px solid #D4A843', padding:'24px' }}>
+              <div className="bebas" style={{ color:'#D4A843', fontSize:'1rem', letterSpacing:'0.08em', marginBottom:10 }}>The Spendthrift Provision</div>
+              <p style={{ color:'#aaa', fontSize:'0.85rem', lineHeight:1.8, margin:0 }}>Almost every trust created for a professional athlete should include a spendthrift clause. This prevents a beneficiary from assigning their interest in the trust to a creditor — meaning if a beneficiary faces a lawsuit or debt, the trust assets cannot be seized. It also protects beneficiaries from their own financial decisions. Standard language, significant protection.</p>
+            </div>
+            <ComplianceNote>Trust structures involve complex legal, tax, and fiduciary considerations. Establishing any trust requires working with an estate planning attorney. State laws vary significantly.</ComplianceNote>
+          </div>
+        </section>
+      );
+    }
+
+    function Section5() {
+      const accounts = [
+        { name:'Solo 401(k)', color:'#D4A843', limit:'Up to $69,000/year (2024)', who:'Self-employed athletes with endorsement or business income', how:'Contribute as both employee ($23,000) and employer (25% of net self-employment income). Pre-tax contributions reduce taxable income dollar-for-dollar. Growth is tax-deferred until withdrawal.', power:'An athlete earning $500K in endorsements could shelter up to $69,000 in a single year — saving over $25,000 in federal tax alone at the top marginal rate.' },
+        { name:'Defined Benefit Plan', color:'#44AA66', limit:'Up to ~$275,000+/year (actuarially determined)', who:'Athletes with significant self-employment income concentrated over a short career window', how:'A pension-style plan where annual contributions are determined by an actuary based on the promised retirement benefit. Because the benefit must be fully funded in a short window, contribution limits far exceed any other plan type.', power:'The most powerful retirement contribution vehicle available to high-income self-employed individuals — precisely the profile of a professional athlete with meaningful endorsement income.' },
+        { name:'Health Savings Account (HSA)', color:'#4488CC', limit:'$4,150 individual / $8,300 family (2024)', who:'Anyone enrolled in a High Deductible Health Plan (HDHP)', how:'Triple tax advantage: contribute pre-tax, grow tax-free, withdraw tax-free for qualified medical expenses. No "use it or lose it" rule — unused funds roll over indefinitely. After 65, can withdraw for any purpose (taxed as ordinary income).', power:'Post-career medical costs for former athletes are significantly above average. An HSA funded aggressively during the career is a dedicated, triple-tax-advantaged healthcare reserve.' },
+        { name:'Donor-Advised Fund (DAF)', color:'#9966CC', limit:'No legal maximum (must ultimately be granted to charity)', who:'Athletes with philanthropic goals who want a current-year deduction', how:'Contribute cash or appreciated assets to the DAF in a high-income year. Take the full deduction immediately. Invest the funds inside the DAF and recommend grants to charities on your own schedule over time.', power:'An athlete donating $1M in appreciated stock to a DAF avoids capital gains on the appreciation AND gets a $1M deduction in year one. The DAF then grows tax-free while grants are distributed over a decade.' },
+      ];
+      return (
+        <section id="tax-accounts" style={{ padding:'80px 0' }}>
+          <div className="container">
+            <SectionLabel num="05" title="Tax-Advantaged Accounts" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>The IRS has built legal vehicles to reduce taxable income, defer taxes, and grow wealth tax-free. Most athletes are dramatically underusing them — particularly during peak earning years when the tax savings are largest.</p>
+            <div style={{ display:'flex', flexDirection:'column', gap:16, marginBottom:40 }}>
+              {accounts.map(a => (
+                <div key={a.name} className="card" style={{ padding:'28px', borderLeft:`3px solid ${a.color}` }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12, flexWrap:'wrap', gap:8 }}>
+                    <div className="bebas" style={{ color:a.color, fontSize:'1.3rem', letterSpacing:'0.04em' }}>{a.name}</div>
+                    <div style={{ padding:'4px 10px', background:`${a.color}15`, borderRadius:20, border:`1px solid ${a.color}30` }}><span style={{ color:a.color, fontSize:'0.68rem', fontWeight:600, letterSpacing:'0.06em' }}>{a.limit}</span></div>
+                  </div>
+                  <div style={{ marginBottom:12 }}><span style={{ color:'#555', fontSize:'0.68rem', textTransform:'uppercase', letterSpacing:'0.08em' }}>Best for: </span><span style={{ color:'#777', fontSize:'0.78rem' }}>{a.who}</span></div>
+                  <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, marginBottom:16 }}>{a.how}</p>
+                  <div style={{ padding:'12px 16px', background:'#0d0d0d', borderRadius:8, borderLeft:`2px solid ${a.color}` }}><span style={{ color:a.color, fontSize:'0.62rem', textTransform:'uppercase', letterSpacing:'0.08em', fontWeight:600 }}>Why it matters: </span><span style={{ color:'#666', fontSize:'0.78rem' }}>{a.power}</span></div>
+                </div>
+              ))}
+            </div>
+            <ComplianceNote>Contribution limits, eligibility rules, and tax treatment are subject to annual IRS updates. Consult a CPA to determine which accounts are appropriate and how to maximize contributions in any given year.</ComplianceNote>
+          </div>
+        </section>
+      );
+    }
+
+    function Section6() {
+      return (
+        <section id="estate" style={{ padding:'80px 0', background:'#080808' }}>
+          <div className="container">
+            <SectionLabel num="06" title="Estate Planning" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>Estate planning is not about death. It's about control — over who receives assets, when they receive them, and under what conditions. For athletes who built significant wealth in a short window, the estate plan is where that wealth either survives generations or evaporates within one.</p>
+            <div style={{ borderRadius:12, padding:'24px', background:'#1a0a0a', border:'1px solid #CC333350', marginBottom:48 }}>
+              <div style={{ display:'flex', gap:14, alignItems:'flex-start' }}>
+                <span style={{ color:'#CC3333', fontSize:'1.6rem', lineHeight:1, flexShrink:0 }}>⚠</span>
+                <div>
+                  <div className="bebas" style={{ color:'#CC3333', fontSize:'1.1rem', letterSpacing:'0.06em', marginBottom:10 }}>The 2026 Sunset — Act Now</div>
+                  <p style={{ color:'#aaa', fontSize:'0.85rem', lineHeight:1.8, marginBottom:12 }}>The 2017 Tax Cuts and Jobs Act doubled the federal estate and gift tax exemption. As of 2024, each individual can transfer up to <strong style={{ color:'white' }}>$13.61 million</strong> free of federal estate tax. This provision sunsets on December 31, 2025 — in 2026, the exemption drops to approximately <strong style={{ color:'white' }}>$7 million</strong> (inflation adjusted).</p>
+                  <p style={{ color:'#888', fontSize:'0.82rem', lineHeight:1.8 }}>Athletes with estates above $7M who have not made gifting moves are leaving the window open. Any gifting done now at the $13.61M level is protected — the IRS has confirmed there will be no "clawback." The time to act is before December 31, 2025.</p>
+                </div>
+              </div>
+            </div>
+            <div style={{ marginBottom:40 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:20 }}>Key Concepts</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                {[{ title:'Annual Gift Tax Exclusion', color:'#44AA66', body:'In 2024, any individual can give up to $18,000 per year to any number of people — completely free of gift tax, without touching the lifetime exemption. A married couple can give $36,000 per recipient. An athlete with 10 family members could transfer $180,000 annually with zero tax consequence. Systematically used over a career, this compounds significantly.' }, { title:'Step-Up in Basis', color:'#4488CC', body:'When a person dies, appreciated assets receive a "step-up" in cost basis to fair market value at death. A stock bought for $1M worth $10M at death passes to heirs with a $10M basis — the $9M in appreciation is never taxed. One of the most powerful features of the tax code for long-term asset holders.' }, { title:'GRAT (Grantor Retained Annuity Trust)', color:'#D4A843', body:'Allows an athlete to transfer appreciating assets to heirs with minimal gift tax. The grantor receives annuity payments for a set term, and any appreciation above the IRS hurdle rate passes to heirs tax-free. Particularly powerful for startup equity or real estate expected to appreciate significantly.' }, { title:'ILIT (Irrevocable Life Insurance Trust)', color:'#9966CC', body:'Life insurance proceeds are income-tax-free to beneficiaries — but they ARE included in the taxable estate if the insured owned the policy. An ILIT holds the policy outside the estate, meaning the death benefit passes to heirs completely free of both income and estate tax. Standard in high-net-worth estate plans.' }].map(({ title, color, body }) => (
+                  <div key={title} className="card" style={{ borderLeft:`3px solid ${color}`, padding:'22px 24px' }}>
+                    <div className="bebas" style={{ color, fontSize:'1rem', letterSpacing:'0.04em', marginBottom:10 }}>{title}</div>
+                    <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, margin:0 }}>{body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <ComplianceNote>The 2026 sunset may be extended by future legislation. Work with an estate planning attorney and CPA to determine appropriate strategies well before year-end 2025.</ComplianceNote>
+          </div>
+        </section>
+      );
+    }
+
+    function Section7() {
+      const mistakes = [
+        'Waiting until tax season to think about taxes. Tax planning is a year-round discipline — not an April event.',
+        'Using the same advisor for everything. Tax, legal, and investment advice require different expertise and different licenses.',
+        'Taking a large signing bonus as a lump sum without exploring installment or deferral options.',
+        'Not establishing residency in a no-income-tax state before the contract is signed.',
+        'Gifting assets impulsively without understanding annual exclusion limits and gift tax rules.',
+        'Missing the 2026 exemption window if the estate exceeds approximately $7M.',
+        'Not using a Solo 401k or defined benefit plan during endorsement income years.',
+      ];
+      return (
+        <section id="tax-team" style={{ padding:'80px 0' }}>
+          <div className="container">
+            <SectionLabel num="07" title="Your Tax Team" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>Tax strategy is not a solo sport. The moves in this presentation require a coordinated team — each with distinct expertise. The biggest tax mistakes athletes make are almost always failures of coordination, not knowledge.</p>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:24 }}>The Minimum Team</div>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))', gap:16, marginBottom:32 }}>
+                {[{ role:'CPA — Athlete Specialist', icon:'🧾', color:'#D4A843', desc:'Not every CPA understands jock tax, multi-state filing, or entity structures for athletes. This is a specialized niche. The CPA should have a verifiable track record with professional athletes.', owns:'Annual filing, quarterly estimates, jock tax allocation, entity compliance, retirement contributions' }, { role:'Estate Planning Attorney', icon:'📋', color:'#4488CC', desc:'Responsible for trust documents, will, healthcare directives, and powers of attorney. Coordinates with the CPA on gifting strategy and 2026 exemption planning.', owns:'Trust drafting, will, beneficiary coordination, gifting strategy, estate tax planning' }, { role:'Financial Advisor (Fiduciary)', icon:'📈', color:'#44AA66', desc:'Holds the portfolio and coordinates with the CPA and attorney on tax-efficient investment decisions. Must be a fiduciary — legally required to act in the client\'s interest.', owns:'Investment strategy, retirement accounts, asset location, portfolio-level tax efficiency' }].map(({ role, icon, color, desc, owns }) => (
+                  <div key={role} className="card" style={{ padding:'28px', borderTop:`3px solid ${color}` }}>
+                    <div style={{ fontSize:'2rem', marginBottom:12 }}>{icon}</div>
+                    <div className="bebas" style={{ color, fontSize:'1.1rem', letterSpacing:'0.04em', marginBottom:12 }}>{role}</div>
+                    <p style={{ color:'#777', fontSize:'0.8rem', lineHeight:1.8, marginBottom:16 }}>{desc}</p>
+                    <div style={{ padding:'10px 14px', background:'#0d0d0d', borderRadius:6 }}><div style={{ color:'#555', fontSize:'0.62rem', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>Owns</div><div style={{ color:'#666', fontSize:'0.74rem', lineHeight:1.6 }}>{owns}</div></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:20 }}>The Most Common Mistakes</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {mistakes.map((m, i) => (
+                  <div key={i} style={{ display:'flex', gap:14, padding:'14px 18px', background:'#0d0d0d', borderRadius:8, border:'1px solid #161616', alignItems:'flex-start' }}>
+                    <span className="bebas" style={{ color:'#CC3333', fontSize:'1.1rem', flexShrink:0, lineHeight:1.3 }}>{String(i+1).padStart(2,'0')}</span>
+                    <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.7, margin:0 }}>{m}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ borderRadius:12, padding:'40px 24px', textAlign:'center', background:'linear-gradient(135deg,#1a1200 0%,#111 100%)', border:'1px solid #D4A843', marginBottom:48 }}>
+              <div className="bebas" style={{ color:'#D4A843', fontSize:'clamp(1.5rem,5vw,2.5rem)', letterSpacing:'0.03em', lineHeight:1.2 }}>Earning it is half the game.</div>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,5vw,2.5rem)', letterSpacing:'0.03em', lineHeight:1.2, marginTop:4 }}>Structuring it is the other half.</div>
+            </div>
+            <div style={{ margin:'0 -16px', padding:'20px 16px', textAlign:'center', background:'#D4A843' }}>
+              <div className="bebas" style={{ color:'black', fontSize:'clamp(1rem,4vw,1.5rem)', letterSpacing:'0.12em' }}>SMART MONEY | FINANCIAL LITERACY FOR PROFESSIONAL ATHLETES</div>
+            </div>
+            <p style={{ textAlign:'center', fontSize:'0.7rem', color:'#444', padding:'20px 0' }}>Built for educational purposes only. Not tax or legal advice.</p>
+          </div>
+        </section>
+      );
+    }
+
+    function App() {
+      return (
+        <div style={{ background:'#080808', minHeight:'100vh' }}>
+          <div style={{ background:'#1a0a00', borderBottom:'1px solid #D4A843', padding:'10px 20px', textAlign:'center' }}>
+            <p style={{ color:'#D4A843', fontSize:'0.72rem', letterSpacing:'0.08em', textTransform:'uppercase', margin:0, lineHeight:1.5 }}>
+              <strong>Disclaimer:</strong> This presentation is for <strong>educational purposes only</strong> and does not constitute tax, legal, or investment advice. All figures are illustrative. Consult a licensed CPA, attorney, and fiduciary advisor for guidance specific to your situation.
+            </p>
+          </div>
+          <Nav />
+          <CourtDivider />
+          <Hero />
+          <CourtDivider />
+          <Section1 />
+          <CourtDivider />
+          <Section2 />
+          <CourtDivider />
+          <Section3 />
+          <CourtDivider />
+          <Section4 />
+          <CourtDivider />
+          <Section5 />
+          <CourtDivider />
+          <Section6 />
+          <CourtDivider />
+          <Section7 />
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>

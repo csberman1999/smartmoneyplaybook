@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Money | Level Six — Legacy & Generational Wealth</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <script src="/vendor/react.min.js" crossorigin></script>
+  <script src="/vendor/react-dom.min.js" crossorigin></script>
+  <script src="/vendor/prop-types.min.js" crossorigin></script>
+  <script src="/vendor/recharts.js" crossorigin></script>
+  <script src="/vendor/babel.min.js"></script>
+  <script>
+  (function() {
+    Babel.registerPreset("react", function() {
+      return { plugins: [
+        [Babel.availablePlugins["transform-react-jsx"], { runtime: "classic" }],
+        Babel.availablePlugins["transform-react-display-name"]
+      ]};
+    });
+  })();
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: #080808; color: #E8E8E8; font-family: 'Open Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #111; }
+    ::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #D4A843; }
+    .bebas { font-family: 'Bebas Neue', cursive; }
+    .container { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+    @media (min-width: 640px) { .container { padding: 0 24px; } }
+    .card { background: #111111; border-radius: 12px; border: 1px solid #1e1e1e; padding: 20px; }
+    .section-heading { font-family: 'Bebas Neue', cursive; font-size: clamp(2.5rem, 8vw, 4.5rem); letter-spacing: 0.04em; line-height: 1; color: white; text-transform: uppercase; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } .grid-3 { grid-template-columns: 1fr; } }
+    button { font-family: 'Open Sans', sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect } = React;
+
+    function CourtDivider() {
+      return (
+        <div style={{ position:'relative', height:48, overflow:'hidden', display:'flex', alignItems:'center' }}>
+          <svg viewBox="0 0 800 48" style={{ position:'absolute', inset:0, width:'100%', height:'100%', opacity:0.06 }}>
+            <line x1="400" y1="0" x2="400" y2="48" stroke="#D4A843" strokeWidth="2"/>
+            <circle cx="400" cy="24" r="20" stroke="#D4A843" strokeWidth="2" fill="none"/>
+            <path d="M 150 0 Q 200 24 150 48" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+            <path d="M 650 0 Q 600 24 650 48" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+            <rect x="120" y="8" width="70" height="32" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+            <rect x="610" y="8" width="70" height="32" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+          </svg>
+          <div style={{ width:'100%', height:1, background:'linear-gradient(90deg,transparent,#D4A843 20%,#D4A843 80%,transparent)' }}/>
+        </div>
+      );
+    }
+
+    function SectionLabel({ num, title }) {
+      return (
+        <div style={{ marginBottom:40 }}>
+          <p className="bebas" style={{ color:'#D4A843', letterSpacing:'0.1em', fontSize:'1.1rem', marginBottom:8 }}>Section {num}</p>
+          <h2 className="section-heading">{title}</h2>
+          <div style={{ width:64, height:3, background:'#D4A843', borderRadius:2, marginTop:14 }}/>
+        </div>
+      );
+    }
+
+    function ComplianceNote({ children }) {
+      return (
+        <div style={{ borderLeft:'4px solid #D4A843', background:'#0D0D0D', padding:'14px 18px', borderRadius:'0 8px 8px 0', fontSize:'0.78rem', color:'#777', lineHeight:1.7, marginTop:32 }}>
+          <strong style={{ color:'#D4A843' }}>Education note: </strong>{children}
+        </div>
+      );
+    }
+
+    const SECTIONS = [
+      { id:'what-is-legacy',   label:'What Is Legacy' },
+      { id:'family-office',    label:'Family Office' },
+      { id:'next-generation',  label:'Next Generation' },
+      { id:'governance',       label:'Governance' },
+      { id:'philanthropy',     label:'Philanthropy' },
+      { id:'global-wealth',    label:'Global Wealth' },
+      { id:'blueprint',        label:'Your Blueprint' },
+    ];
+
+    function Nav() {
+      const [active, setActive] = useState('what-is-legacy');
+      useEffect(() => {
+        const obs = new IntersectionObserver(entries => { entries.forEach(e => { if (e.isIntersecting) setActive(e.target.id); }); }, { threshold: 0.3 });
+        SECTIONS.forEach(({ id }) => { const el = document.getElementById(id); if (el) obs.observe(el); });
+        return () => obs.disconnect();
+      }, []);
+      const scrollTo = id => document.getElementById(id)?.scrollIntoView({ behavior:'smooth' });
+      return (
+        <nav style={{ position:'sticky', top:0, zIndex:50, width:'100%', background:'rgba(8,8,8,0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid #222' }}>
+          <div className="container">
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height:56, gap:8 }}>
+              <div style={{ display:'flex', flexDirection:'column', lineHeight:1 }}>
+                <span className="bebas" style={{ color:'#D4A843', letterSpacing:'0.1em', fontSize:'1.2rem' }}>SMART MONEY</span>
+                <span style={{ color:'#444', fontSize:'0.55rem', textTransform:'uppercase', letterSpacing:'0.15em', marginTop:2 }}>Level Six</span>
+              </div>
+              <div style={{ display:'flex', gap:2, flexWrap:'wrap', justifyContent:'flex-end' }}>
+                {SECTIONS.map(({ id, label }) => (
+                  <button key={id} onClick={() => scrollTo(id)} style={{ padding:'4px 10px', fontSize:'0.63rem', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em', color: active===id ? '#D4A843' : '#555', background:'none', border:'none', borderBottom: active===id ? '2px solid #D4A843' : '2px solid transparent', cursor:'pointer', whiteSpace:'nowrap' }}>{label}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </nav>
+      );
+    }
+
+    function Hero() {
+      const [vis, setVis] = useState(false);
+      useEffect(() => { setTimeout(() => setVis(true), 100); }, []);
+      return (
+        <section style={{ minHeight:'60vh', display:'flex', flexDirection:'column', justifyContent:'center', padding:'80px 0 60px', background:'radial-gradient(ellipse at 50% 0%, #0a1a0a 0%, #080808 65%)' }}>
+          <div className="container">
+            <div style={{ opacity:vis?1:0, transform:vis?'translateY(0)':'translateY(24px)', transition:'all 0.8s ease' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20 }}>
+                <div style={{ width:40, height:2, background:'#D4A843' }}/>
+                <span className="bebas" style={{ color:'#D4A843', letterSpacing:'0.2em', fontSize:'0.9rem' }}>LEVEL SIX</span>
+              </div>
+              <h1 className="bebas" style={{ fontSize:'clamp(3rem,12vw,7rem)', letterSpacing:'0.04em', lineHeight:0.9, color:'white', marginBottom:24 }}>Legacy &<br/>Generational<br/>Wealth</h1>
+              <p style={{ color:'#888', fontSize:'clamp(0.9rem,2vw,1.1rem)', maxWidth:540, lineHeight:1.8, marginBottom:40 }}>
+                Accumulating wealth is one thing. Making it last — and mean something — is another. Generational wealth is not about a number. It is about the systems, values, and structures that allow what you build to outlast you and grow beyond you.
+              </p>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:24 }}>
+                {[{ num:'70%', label:'Family wealth gone by the 2nd generation' }, { num:'90%', label:'Gone by the 3rd generation' }, { num:'3%', label:'Families with a written wealth plan' }].map(({ num, label }) => (
+                  <div key={label}>
+                    <div className="bebas" style={{ color:'#D4A843', fontSize:'2rem', letterSpacing:'0.04em', lineHeight:1 }}>{num}</div>
+                    <div style={{ color:'#444', fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.08em', marginTop:4 }}>{label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    function Section1() {
+      const [gen, setGen] = useState(0);
+      const GOLD = '#D4A843';
+      const generations = [
+        { label:'Generation 1', who:'You', color:'#D4A843', tag:'Builder', wealth:'Creates the wealth. Builds through career earnings, investments, business ownership. Defines the values and expectations — even when those are never written down. The decisions made here compound or erode across every generation that follows.' },
+        { label:'Generation 2', who:'Your Children', color:'#4488CC', tag:'Inheritor', wealth:'Receives the wealth without having built it. This is the most vulnerable generation. They did not experience the sacrifice — only the result. Without intentional preparation, they are more likely to spend than multiply. With intentional preparation, they can be powerful stewards.' },
+        { label:'Generation 3', who:'Your Grandchildren', color:'#44AA66', tag:'Either/Or', wealth:'This is where wealth either compounds or disappears. Statistics say 90% of generational wealth is gone by this generation — but the families that survive this transition did so because of structure, education, and governance built in Generation 1. The decisions made today are felt here.' },
+      ];
+      const g = generations[gen];
+      return (
+        <section id="what-is-legacy" style={{ padding:'80px 0' }}>
+          <div className="container">
+            <SectionLabel num="01" title="What Legacy Actually Means" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              Most athletes define legacy in terms of performance. How they will be remembered. What the highlights look like. Legacy in the financial sense is different — it is about whether the wealth, the values, and the opportunity you created continue after you. Most don't. The families that do have one thing in common: they built systems on purpose, not by accident.
+            </p>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>The Three-Generation Arc</div>
+              <div style={{ display:'flex', gap:8, marginBottom:20 }}>
+                {generations.map((ge, i) => (
+                  <button key={ge.label} onClick={() => setGen(i)} style={{ flex:1, padding:'12px 8px', borderRadius:10, border:`1px solid ${gen===i ? ge.color : '#1a1a1a'}`, background: gen===i ? `${ge.color}15` : '#0d0d0d', color: gen===i ? ge.color : '#555', fontSize:'0.7rem', fontWeight:600, cursor:'pointer', textAlign:'center', fontFamily:'Open Sans, sans-serif' }}>
+                    <div>{ge.label}</div>
+                    <div className="bebas" style={{ fontSize:'1.1rem', letterSpacing:'0.04em', marginTop:4 }}>{ge.tag}</div>
+                  </button>
+                ))}
+              </div>
+              <div className="card" style={{ padding:'28px', borderLeft:`3px solid ${g.color}` }}>
+                <div className="bebas" style={{ color:g.color, fontSize:'1.4rem', letterSpacing:'0.04em', marginBottom:6 }}>{g.who}</div>
+                <p style={{ color:'#aaa', fontSize:'0.85rem', lineHeight:1.8, margin:0 }}>{g.wealth}</p>
+              </div>
+            </div>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>The Four Pillars of Lasting Wealth</div>
+              <div className="grid-2">
+                {[{ pillar:'Financial Capital', icon:'💰', color:'#D4A843', desc:'The assets — investments, businesses, real estate, cash. Necessary but not sufficient. Families that focus exclusively on financial capital without the other three lose it within two generations.' }, { pillar:'Human Capital', icon:'🧠', color:'#4488CC', desc:'The skills, knowledge, work ethic, and capabilities of each family member. The wealthiest families invest as heavily in developing people as they do in managing assets. A family full of capable, motivated individuals will rebuild financial capital if lost.' }, { pillar:'Intellectual Capital', icon:'📚', color:'#44AA66', desc:'Shared knowledge, skills, and information — including how to manage and grow the financial capital. Financial literacy is an intellectual capital investment. Families that do not transfer this knowledge create dependency, not legacy.' }, { pillar:'Social Capital', icon:'🌐', color:'#9966CC', desc:'The network, relationships, reputation, and community standing that create opportunity. An athlete\'s social capital is often its highest peak at the end of the career — the families that activate it deliberately extend its value across generations.' }].map(({ pillar, icon, color, desc }) => (
+                  <div key={pillar} className="card" style={{ padding:'22px', borderTop:`3px solid ${color}` }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
+                      <span style={{ fontSize:'1.4rem' }}>{icon}</span>
+                      <div className="bebas" style={{ color, fontSize:'1rem', letterSpacing:'0.04em' }}>{pillar}</div>
+                    </div>
+                    <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, margin:0 }}>{desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="card" style={{ background:'linear-gradient(135deg,#0a1a0a,#111)', border:'1px solid #44AA66', padding:'28px' }}>
+              <div className="bebas" style={{ color:'#44AA66', fontSize:'1.1rem', letterSpacing:'0.08em', marginBottom:12 }}>The Shirtsleeves-to-Shirtsleeves Phenomenon</div>
+              <p style={{ color:'#aaa', fontSize:'0.85rem', lineHeight:1.8, margin:0 }}>Every culture has a version of this proverb. In English: "Shirtsleeves to shirtsleeves in three generations." In Chinese: "Rice paddy to rice paddy in three generations." In Italian: "From the stable to the stars and back to the stable." The pattern is universal — and the families that break it do so deliberately. Not by accident, and not by hoping the next generation figures it out on their own.</p>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    function Section2() {
+      const [open, setOpen] = useState(null);
+      const toggle = i => setOpen(open===i ? null : i);
+      const services = [
+        { title:'Investment Management', desc:'Consolidated portfolio oversight across all asset classes — public markets, private equity, real estate, alternatives, and cash. A family office eliminates the fragmentation of having 5–10 different advisors managing different buckets with no unified view of risk or return.' },
+        { title:'Tax Planning & Compliance', desc:'Multi-entity, multi-state, and (for international families) multi-country tax strategy. Coordinates across business entities, trusts, partnerships, and individual returns. The complexity of a family office tax structure is a full-time engagement — not a one-time annual filing.' },
+        { title:'Estate & Trust Administration', desc:'Ongoing management of trust structures, annual gifting programs, beneficiary administration, and coordination with estate attorneys as laws change. The 2026 estate tax exemption sunset is an example of the kind of legislative change a family office actively monitors.' },
+        { title:'Family Governance Support', desc:'Facilitating family meetings, maintaining the family mission statement and values document, managing the family council, and coordinating intergenerational communication. Most wealthy families underinvest in this — it is often the highest-leverage activity.' },
+        { title:'Bill Pay & Lifestyle Management', desc:'Consolidated household management including bill pay, insurance coordination, travel management, and concierge services. Reduces the administrative burden on family members so attention can be focused on high-value decisions.' },
+        { title:'Philanthropy Coordination', desc:'Managing the family\'s charitable giving strategy — private foundations, donor-advised funds, grant making, and impact measurement. Philanthropy is one of the most powerful tools for building shared family identity across generations.' },
+      ];
+      return (
+        <section id="family-office" style={{ padding:'80px 0', background:'#080808' }}>
+          <div className="container">
+            <SectionLabel num="02" title="The Family Office" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              A family office is a private wealth management firm that serves a single family. It is the infrastructure for managing complex, multi-generational wealth — coordinating investments, tax, legal, estate, philanthropy, and governance under one roof. Understanding what a family office is, and when it makes sense, is part of understanding the full picture of what building wealth at this level looks like.
+            </p>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>Single vs. Multi-Family Office</div>
+              <div className="grid-2" style={{ marginBottom:32 }}>
+                {[{ type:'Single Family Office (SFO)', color:'#D4A843', threshold:'$50M–$100M+', cost:'$1–3M/year in operating costs', pros:['Complete privacy and control', 'Fully customized to family\'s needs', 'Dedicated staff with no other clients', 'Culture reflects family values directly'], cons:['High fixed cost regardless of performance', 'Staffing, hiring, and management burden on family', 'Requires oversight and governance to run well'] }, { type:'Multi-Family Office (MFO)', color:'#4488CC', threshold:'$10M–$50M+', cost:'0.5–1.5% of AUM annually', pros:['Shared infrastructure reduces cost', 'Access to institutional-level services', 'Professional management without hiring burden', 'Scalable as wealth grows'], cons:['Less customization than SFO', 'Privacy shared across client base', 'Family interests pooled with other families'] }].map(({ type, color, threshold, cost, pros, cons }) => (
+                  <div key={type} className="card" style={{ padding:'24px', borderTop:`3px solid ${color}` }}>
+                    <div className="bebas" style={{ color, fontSize:'1.1rem', letterSpacing:'0.04em', marginBottom:14 }}>{type}</div>
+                    <div style={{ marginBottom:14 }}>
+                      <div style={{ color:'#444', fontSize:'0.6rem', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:6 }}>Typical Threshold</div>
+                      <div className="bebas" style={{ color:'white', fontSize:'1rem' }}>{threshold}</div>
+                    </div>
+                    <div style={{ marginBottom:14 }}>
+                      <div style={{ color:'#444', fontSize:'0.6rem', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:6 }}>Cost Structure</div>
+                      <div style={{ color:'#888', fontSize:'0.78rem' }}>{cost}</div>
+                    </div>
+                    {pros.map(p => <div key={p} style={{ display:'flex', gap:8, marginBottom:8 }}><span style={{ color:'#44AA66', fontSize:'0.75rem', flexShrink:0 }}>+</span><span style={{ color:'#777', fontSize:'0.75rem', lineHeight:1.5 }}>{p}</span></div>)}
+                    <div style={{ height:1, background:'#1a1a1a', margin:'12px 0' }} />
+                    {cons.map(c => <div key={c} style={{ display:'flex', gap:8, marginBottom:6 }}><span style={{ color:'#CC3333', fontSize:'0.75rem', flexShrink:0 }}>−</span><span style={{ color:'#666', fontSize:'0.75rem', lineHeight:1.5 }}>{c}</span></div>)}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ marginBottom:32 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>What a Family Office Does</div>
+              <p style={{ color:'#888', fontSize:'0.85rem', marginBottom:16, lineHeight:1.8 }}>The services a family office provides span every dimension of complex wealth management. Tap each to expand.</p>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                {services.map((s, i) => (
+                  <div key={i} className="card" style={{ padding:0, overflow:'hidden' }}>
+                    <button onClick={() => toggle(i)} style={{ width:'100%', padding:'16px 20px', background:'none', border:'none', cursor:'pointer', display:'flex', justifyContent:'space-between', alignItems:'center', textAlign:'left', color:'white' }}>
+                      <div className="bebas" style={{ color:'#aaa', fontSize:'0.95rem', letterSpacing:'0.04em' }}>{s.title}</div>
+                      <span style={{ color:'#D4A843', fontSize:'1.1rem', lineHeight:1, flexShrink:0 }}>{open===i ? '−' : '+'}</span>
+                    </button>
+                    {open===i && <div style={{ padding:'0 20px 20px', borderTop:'1px solid #1a1a1a' }}><p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, margin:'16px 0 0' }}>{s.desc}</p></div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    function Section3() {
+      return (
+        <section id="next-generation" style={{ padding:'80px 0' }}>
+          <div className="container">
+            <SectionLabel num="03" title="Preparing the Next Generation" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              Giving children money is not the same as preparing them to manage it. The families that maintain wealth across generations invest in the education, values, and experiences of the next generation with the same intentionality they invest in financial assets. This is the most commonly neglected work — and the most consequential.
+            </p>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>Financial Education by Age</div>
+              <p style={{ color:'#888', fontSize:'0.85rem', marginBottom:20, lineHeight:1.8 }}>Financial literacy is not one conversation — it's a curriculum built over years. The goal is not to create mini-CFOs. The goal is to build adults who understand the relationship between effort and value, how to manage what they have, and how to make decisions under uncertainty.</p>
+              <div style={{ display:'flex', flexDirection:'column', gap:0, borderRadius:12, overflow:'hidden', border:'1px solid #1a1a1a' }}>
+                {[{ age:'Ages 5–10', icon:'🪙', color:'#44AA66', lessons:['Money comes from work, not from asking', 'Earn an allowance tied to contribution — not existence', 'Three jars: spend, save, give', 'The difference between a want and a need'] }, { age:'Ages 11–16', icon:'📊', color:'#D4A843', lessons:['Opening and managing a real bank account', 'Understanding a basic budget', 'Earning through a first real job or project', 'Compound interest as a concept (show the math)'] }, { age:'Ages 17–22', icon:'🎓', color:'#4488CC', lessons:['How to read a bank statement and track net worth', 'Credit: how it works, what affects it, why it matters', 'Taxes: what a W-2 is, why withholding matters', 'Basic investing: index funds, time horizon, why fees matter'] }, { age:'Ages 23–30', icon:'💼', color:'#9966CC', lessons:['Building an investment portfolio alongside a financial advisor', 'Understanding trusts they may be beneficiaries of', 'The family balance sheet: what exists, how it\'s structured', 'Setting their own financial goals independent of family wealth'] }, { age:'Ages 30+', icon:'🏛️', color:'#E07020', lessons:['Full engagement in family governance processes', 'Participating in investment committee conversations (as observers or members)', 'Understanding their role as future stewards, not just beneficiaries', 'Beginning to prepare their own next generation'] }].map(({ age, icon, color, lessons }, i) => (
+                  <div key={age} style={{ background: i%2===0 ? '#0d0d0d' : '#0a0a0a', borderBottom: i<4 ? '1px solid #111' : 'none', padding:'20px 24px', display:'grid', gridTemplateColumns:'160px 1fr', gap:16, alignItems:'flex-start' }}>
+                    <div>
+                      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}><span style={{ fontSize:'1.2rem' }}>{icon}</span><span className="bebas" style={{ color, fontSize:'1rem', letterSpacing:'0.04em' }}>{age}</span></div>
+                    </div>
+                    <div>{lessons.map(l => <div key={l} style={{ display:'flex', gap:8, marginBottom:6 }}><span style={{ color:color, fontSize:'0.75rem', flexShrink:0, marginTop:1 }}>→</span><span style={{ color:'#777', fontSize:'0.78rem', lineHeight:1.5 }}>{l}</span></div>)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>The Trust: A Tool, Not a Gift</div>
+              <p style={{ color:'#888', fontSize:'0.85rem', marginBottom:20, lineHeight:1.8 }}>A trust is a legal structure that holds and distributes assets according to terms set by the grantor. When structured well, a trust is not just an estate planning tool — it is a values document. The distribution terms and conditions communicate what the family believes about money, work, and responsibility.</p>
+              <div className="grid-2">
+                {[{ title:'Incentive Trust', color:'#44AA66', desc:'Distributions tied to behavior or achievement: matching a beneficiary\'s earned income, distributions upon completing a degree, maintaining employment, or demonstrating financial literacy. Encourages self-reliance rather than dependence.' }, { title:'Discretionary Trust', color:'#D4A843', desc:'A trustee has full discretion over distributions. Protects assets from beneficiaries who are not ready to manage them, while allowing a trustworthy trustee to meet genuine needs. The trustee relationship is critical — requires exceptional judgment and neutrality.' }, { title:'Spendthrift Trust', color:'#4488CC', desc:'Protects the trust assets from a beneficiary\'s creditors and from the beneficiary themselves alienating (selling) their future interest. Valuable for beneficiaries who may be vulnerable to poor financial decisions or external creditor claims.' }, { title:'Dynasty Trust', color:'#9966CC', desc:'Designed to last for multiple generations — in some states, indefinitely. Assets held inside the trust are not subject to estate tax at each generation (skipping the generation-skipping transfer tax through GST exemption allocation). A powerful long-term wealth preservation tool.' }].map(({ title, color, desc }) => (
+                  <div key={title} className="card" style={{ padding:'22px', borderTop:`3px solid ${color}` }}>
+                    <div className="bebas" style={{ color, fontSize:'1rem', letterSpacing:'0.04em', marginBottom:10 }}>{title}</div>
+                    <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, margin:0 }}>{desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="card" style={{ background:'linear-gradient(135deg,#1a1200,#111)', border:'1px solid #D4A843', padding:'28px' }}>
+              <div className="bebas" style={{ color:'#D4A843', fontSize:'1rem', letterSpacing:'0.08em', marginBottom:12 }}>The Conversation Most Athletes Avoid</div>
+              <p style={{ color:'#aaa', fontSize:'0.85rem', lineHeight:1.8, margin:0 }}>Talking to children about money is uncomfortable. Talking to children about wealth is rarer still. The families that navigate this best do it early, often, and in age-appropriate ways. The message is not "here is what we have" — it is "here is what we value, here is what this represents, and here is what we expect from you as a steward of it." That conversation is a leadership decision, not a financial one.</p>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    function Section4() {
+      return (
+        <section id="governance" style={{ padding:'80px 0', background:'#080808' }}>
+          <div className="container">
+            <SectionLabel num="04" title="Family Governance" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              Family governance is the set of systems, processes, and agreements that guide how a family makes decisions together — especially when significant assets are shared, when the family grows through marriage and children, and when conflict is inevitable. Families without governance systems tend to fracture when wealth reaches scale. Families with them tend to compound it.
+            </p>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>The Family Council</div>
+              <p style={{ color:'#888', fontSize:'0.85rem', marginBottom:20, lineHeight:1.8 }}>A family council is a formal body that brings family members together to make collective decisions, maintain shared values, and coordinate across generations. Not every family needs a family council — but families with significant shared assets, multiple generations, and increasing complexity usually benefit from one.</p>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {[{ title:'Purpose', body:'Define the family\'s shared mission, values, and goals. Not just what the family owns — but who the family is. A well-run family council ensures that wealth serves the family\'s values rather than the family serving its wealth.' }, { title:'Meeting Cadence', body:'Typically 1–2 times per year. Can be more frequent for families with active business interests or investment committees. Agenda driven. Minutes documented. Decisions recorded so there is institutional memory that does not depend on one person.' }, { title:'Membership', body:'Typically includes adults in the family — and as children reach maturity, they are introduced gradually. In-laws are a common governance question: include them with limits, or limit them to observer status until the marriage has proven durable. There is no universal answer — the answer should be documented.' }, { title:'Investment Committee', body:'A sub-body of the family council focused specifically on investment decisions. May include non-family professionals (an independent advisor, a trusted attorney). Brings structure and accountability to asset allocation decisions that affect the whole family.' }].map(({ title, body }) => (
+                  <div key={title} className="card" style={{ borderLeft:'3px solid #D4A843', padding:'18px 24px' }}>
+                    <div className="bebas" style={{ color:'#D4A843', fontSize:'0.95rem', letterSpacing:'0.04em', marginBottom:8 }}>{title}</div>
+                    <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, margin:0 }}>{body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>The Family Constitution</div>
+              <div className="card" style={{ padding:'28px' }}>
+                <p style={{ color:'#aaa', fontSize:'0.85rem', lineHeight:1.8, marginBottom:24 }}>A family constitution is a written document — not a legal contract, but a living agreement — that captures the family\'s values, decision-making processes, and expectations. It is the governance framework in written form. The act of writing it is as important as the document itself: it requires the family to articulate things that are usually assumed but never stated.</p>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:12 }}>
+                  {['Family mission and values statement', 'Employment policy (can family members work in the business?)', 'Distribution philosophy for trusts and entity structures', 'Decision-making authority and voting rights', 'Conflict resolution process', 'Policy on prenuptial agreements and in-laws', 'Entry and exit policy for family partnerships'].map(item => (
+                    <div key={item} style={{ padding:'12px 14px', background:'#0d0d0d', borderRadius:8, display:'flex', gap:10, alignItems:'flex-start' }}>
+                      <span style={{ color:'#D4A843', fontSize:'0.75rem', flexShrink:0, marginTop:1 }}>→</span>
+                      <span style={{ color:'#777', fontSize:'0.78rem', lineHeight:1.5 }}>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div style={{ marginBottom:32 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>Managing Conflict</div>
+              <p style={{ color:'#888', fontSize:'0.85rem', marginBottom:20, lineHeight:1.8 }}>Conflict in wealthy families is normal. The goal is not to eliminate disagreement — it is to have a legitimate process for resolving it before it becomes destructive. The most damaging family conflicts are the ones that were avoidable but had no mechanism for resolution.</p>
+              <div className="grid-3">
+                {[{ stage:'Prevent', color:'#44AA66', text:'Clear governance documents and decision-making processes eliminate most predictable conflicts before they start.' }, { stage:'Contain', color:'#D4A843', text:'When conflict arises, a defined escalation process keeps disagreements within the family council and out of courts.' }, { stage:'Resolve', color:'#CC3333', text:'For serious conflicts, professional family mediators or independent trustees provide neutral resolution without destroying relationships.' }].map(({ stage, color, text }) => (
+                  <div key={stage} style={{ padding:'20px', background:'#0d0d0d', borderRadius:10, border:`1px solid ${color}30`, textAlign:'center' }}>
+                    <div className="bebas" style={{ color, fontSize:'1.5rem', letterSpacing:'0.04em', marginBottom:8 }}>{stage}</div>
+                    <p style={{ color:'#666', fontSize:'0.78rem', lineHeight:1.6, margin:0 }}>{text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <ComplianceNote>Family governance documents — including family constitutions, partnership agreements, and trust distribution standards — should be drafted by an attorney experienced in family wealth governance. These are binding and consequential documents.</ComplianceNote>
+          </div>
+        </section>
+      );
+    }
+
+    function Section5() {
+      const [dafAmt, setDafAmt] = useState(100000);
+      const taxRate = 0.45;
+      const taxSavings = Math.round(dafAmt * taxRate);
+      const netCost = dafAmt - taxSavings;
+      return (
+        <section id="philanthropy" style={{ padding:'80px 0' }}>
+          <div className="container">
+            <SectionLabel num="05" title="Strategic Philanthropy" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              Giving is both a value and a tool. Strategic philanthropy is not about check writing — it is about using charitable giving to amplify impact, create shared family identity across generations, and build a legacy that extends beyond financial assets. Done well, it is also one of the most effective components of an estate and tax plan.
+            </p>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>Giving Vehicles</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {[{ title:'Donor-Advised Fund (DAF)', color:'#D4A843', desc:'A DAF is a charitable account held at a sponsoring organization (Fidelity Charitable, Schwab Charitable, etc.). Contribute cash, stock, or other assets — take the tax deduction in the year of contribution — and distribute to charities over time at your pace. Immediately tax-efficient. No minimum distribution requirement. Extremely flexible. The most practical giving tool for most high-income athletes.', tip:'Gifting appreciated stock directly to a DAF avoids capital gains tax entirely — a double benefit.' }, { title:'Private Foundation', color:'#4488CC', desc:'A tax-exempt legal entity controlled by the family. Can employ family members, make grants to any qualified charity worldwide, engage in program-related investments, and become a permanent vehicle for family values across generations. More complex and expensive than a DAF — requires annual 5% distribution of assets, excise taxes, and regulatory filings. Typically makes sense at $5M+ in charitable assets.', tip:'Private foundations can be a powerful governance tool — giving younger family members defined responsibility and a vehicle to develop judgment.' }, { title:'Charitable Remainder Trust (CRT)', color:'#44AA66', desc:'A CRT pays income to the donor or beneficiaries for a period of time, with the remainder passing to charity. The donor receives a partial charitable deduction upfront. Useful for converting a large, low-basis appreciated asset into an income stream without recognizing the full capital gain at sale.', tip:'CRTs are complex instruments. Structure with an attorney and evaluate carefully against alternatives.' }, { title:'Charitable Lead Trust (CLT)', color:'#9966CC', desc:'The reverse of a CRT. Charity receives income for a period, then the remainder passes to family beneficiaries. Can be structured to pass assets to heirs with minimal gift or estate tax. A powerful estate planning tool in low-interest-rate environments.', tip:'CLTs are primarily estate planning tools, not philanthropic ones — the charity benefit is real but the tax efficiency for the family is the primary driver.' }].map(({ title, color, desc, tip }) => (
+                  <div key={title} className="card" style={{ borderLeft:`3px solid ${color}`, padding:'22px 24px' }}>
+                    <div className="bebas" style={{ color, fontSize:'1rem', letterSpacing:'0.04em', marginBottom:10 }}>{title}</div>
+                    <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, marginBottom:12 }}>{desc}</p>
+                    <div style={{ padding:'10px 14px', background:'#0a0a0a', borderRadius:6, borderLeft:`2px solid ${color}` }}>
+                      <span style={{ color, fontSize:'0.62rem', textTransform:'uppercase', letterSpacing:'0.08em', fontWeight:600 }}>Key point: </span>
+                      <span style={{ color:'#555', fontSize:'0.78rem' }}>{tip}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>DAF Tax Savings Estimator</div>
+              <p style={{ color:'#888', fontSize:'0.82rem', marginBottom:16, lineHeight:1.8 }}>Illustrative only — assumes a combined federal and state tax rate of 45%. Actual savings depend on individual tax situation.</p>
+              <div className="card" style={{ padding:'28px' }}>
+                <div style={{ marginBottom:20 }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
+                    <span style={{ color:'#555', fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.06em' }}>DAF Contribution Amount</span>
+                    <span className="bebas" style={{ color:'#D4A843', fontSize:'1.3rem', letterSpacing:'0.04em' }}>${dafAmt.toLocaleString()}</span>
+                  </div>
+                  <input type="range" min={10000} max={1000000} step={10000} value={dafAmt} onChange={e => setDafAmt(Number(e.target.value))} style={{ width:'100%', accentColor:'#D4A843' }} />
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12 }}>
+                  {[{ label:'Gross Contribution', val:`$${dafAmt.toLocaleString()}`, color:'#888' }, { label:'Estimated Tax Savings', val:`$${taxSavings.toLocaleString()}`, color:'#44AA66' }, { label:'Net Cost to Give', val:`$${netCost.toLocaleString()}`, color:'#D4A843' }].map(({ label, val, color }) => (
+                    <div key={label} style={{ padding:'16px', background:'#0d0d0d', borderRadius:8, textAlign:'center' }}>
+                      <div style={{ color:'#444', fontSize:'0.62rem', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:8 }}>{label}</div>
+                      <div className="bebas" style={{ color, fontSize:'1.4rem', letterSpacing:'0.04em' }}>{val}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="card" style={{ background:'linear-gradient(135deg,#0a1a0a,#111)', border:'1px solid #44AA66', padding:'28px' }}>
+              <div className="bebas" style={{ color:'#44AA66', fontSize:'1rem', letterSpacing:'0.08em', marginBottom:12 }}>Philanthropy as Family Identity</div>
+              <p style={{ color:'#aaa', fontSize:'0.85rem', lineHeight:1.8, margin:0 }}>The most durable family legacies have a clear philanthropic identity — a cause, a community, or a set of values that are expressed through giving. This becomes part of what the family stands for. It gives younger generations a vehicle for contribution that is separate from financial inheritance. And it creates accountability: families that are known for what they give tend to be more thoughtful about how they accumulate.</p>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    function Section6() {
+      return (
+        <section id="global-wealth" style={{ padding:'80px 0', background:'#080808' }}>
+          <div className="container">
+            <SectionLabel num="06" title="Global Wealth Considerations" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              Many professional athletes have international roots, play in leagues around the world, or build lives that span multiple countries. Global wealth comes with significant complexity — tax obligations, legal structures, and estate planning rules that vary dramatically across jurisdictions. Most of this complexity is manageable with the right team — and nearly all of it is a problem that was avoidable if planned for in advance.
+            </p>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>U.S. Citizens Are Taxed Globally</div>
+              <div className="card" style={{ padding:'28px', borderLeft:'3px solid #CC3333', marginBottom:16 }}>
+                <p style={{ color:'#aaa', fontSize:'0.85rem', lineHeight:1.8, margin:0 }}>The United States is one of only two countries in the world (along with Eritrea) that taxes its citizens on worldwide income regardless of where they live or earn. An American athlete playing in Europe, Asia, or anywhere else owes U.S. taxes on that income. This does not mean paying taxes twice — foreign tax credits and tax treaties mitigate much of the double-taxation risk — but it does mean that the U.S. filing obligation never disappears based on location alone. Every year without filing while earning abroad is a potential problem.</p>
+              </div>
+            </div>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>Key Global Considerations</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {[{ title:'Tax Treaties', color:'#D4A843', body:'The U.S. has income tax treaties with over 60 countries that reduce or eliminate double-taxation on certain types of income. The specific terms vary by treaty and by income type (salary, dividends, royalties, business income). Treaty positions must be affirmatively claimed — they do not apply automatically.' }, { title:'Foreign Bank Account Reporting (FBAR & FATCA)', color:'#4488CC', body:'U.S. persons with foreign financial accounts exceeding $10,000 at any point in the year must file an FBAR annually. FATCA imposes additional reporting requirements on foreign financial institutions and U.S. taxpayers with foreign assets. Penalties for non-compliance are severe — up to $100,000 per violation. Not knowing the rule is not a defense.' }, { title:'Controlled Foreign Corporation (CFC) Rules', color:'#9966CC', body:'If a U.S. person owns more than 50% of a foreign corporation, Subpart F income and GILTI rules may require current U.S. taxation of that entity\'s earnings even without a distribution. International business structures require specialized tax counsel — what works domestically often creates unintended consequences globally.' }, { title:'Estate Planning Across Jurisdictions', color:'#44AA66', body:'Assets located in a foreign country are subject to the estate and inheritance laws of that country — which may differ significantly from U.S. rules. Real estate owned in another country passes through that country\'s probate process. Understand what domestic legal instruments do and do not cover when assets are held internationally.' }, { title:'Currency Risk', color:'#E07020', body:'International income received in foreign currencies creates exchange rate exposure. A contract denominated in Euros or pounds is worth more or less in USD depending on exchange rates at the time of payment. For significant international income, currency hedging strategies can reduce this volatility.' }].map(({ title, color, body }) => (
+                  <div key={title} className="card" style={{ borderLeft:`3px solid ${color}`, padding:'18px 24px' }}>
+                    <div className="bebas" style={{ color, fontSize:'1rem', letterSpacing:'0.04em', marginBottom:8 }}>{title}</div>
+                    <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, margin:0 }}>{body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <ComplianceNote>International tax and estate planning is highly specialized and jurisdiction-specific. Any athlete with income, assets, or family connections across multiple countries should engage both a U.S. international tax attorney and local counsel in the relevant jurisdiction(s). This is an area where early planning dramatically reduces complexity and cost.</ComplianceNote>
+          </div>
+        </section>
+      );
+    }
+
+    function Section7() {
+      return (
+        <section id="blueprint" style={{ padding:'80px 0' }}>
+          <div className="container">
+            <SectionLabel num="07" title="Your Legacy Blueprint" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              Legacy is built in decisions made during the career — not conversations had after it ends. The blueprint below is a framework, not a checklist. It is designed to prompt the questions that matter most, not to provide the answers — those require a team, a plan, and time.
+            </p>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>The Legacy Framework</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                {[{ phase:'Protect', color:'#CC3333', icon:'🛡️', items:['Estate documents: will, healthcare proxy, power of attorney, beneficiary designations up to date', 'Life and disability insurance sized to replace income and protect dependents', 'Liability coverage (umbrella) protecting personal assets from lawsuits', 'Entity structures separating personal and business assets'] }, { phase:'Organize', color:'#D4A843', icon:'📋', items:['One-page summary of all assets, entities, account numbers, and advisor contacts', 'Secure digital storage of all key documents accessible to a trusted person', 'Key relationships: estate attorney, CPA, financial advisor, insurance broker — all know each other and coordinate', 'Annual review of beneficiary designations across all accounts and policies'] }, { phase:'Educate', color:'#4488CC', icon:'📚', items:['Financial literacy curriculum in place for children by age', 'Trust structures explained to beneficiaries — what they are, how they work, what is expected', 'Family values and mission articulated in writing', 'Next generation has relationships with the professional team, not just with you'] }, { phase:'Govern', color:'#44AA66', icon:'⚖️', items:['Family constitution drafted (or in progress)', 'Family council meeting cadence established', 'Investment committee in place if assets justify it', 'Clear documentation of decision-making authority'] }, { phase:'Give', color:'#9966CC', icon:'🌱', items:['Giving strategy defined: causes, vehicles, scale', 'DAF or foundation established and active', 'Philanthropic identity articulated to next generation', 'Giving integrated into estate plan — not an afterthought'] }].map(({ phase, color, icon, items }, idx) => (
+                  <div key={phase} style={{ borderRadius:10, border:'1px solid #1a1a1a', overflow:'hidden' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:12, padding:'16px 20px', background:'#0d0d0d', borderBottom:'1px solid #1a1a1a' }}>
+                      <span style={{ fontSize:'1.3rem' }}>{icon}</span>
+                      <span className="bebas" style={{ color, fontSize:'1.1rem', letterSpacing:'0.04em' }}>{phase}</span>
+                    </div>
+                    <div style={{ padding:'16px 20px', background:'#0a0a0a' }}>
+                      {items.map(item => (
+                        <div key={item} style={{ display:'flex', gap:10, marginBottom:10 }}>
+                          <span style={{ color:color, fontSize:'0.75rem', flexShrink:0, marginTop:1 }}>→</span>
+                          <span style={{ color:'#777', fontSize:'0.8rem', lineHeight:1.6 }}>{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>The Questions That Matter</div>
+              <div className="card" style={{ padding:'28px' }}>
+                <p style={{ color:'#aaa', fontSize:'0.85rem', lineHeight:1.8, marginBottom:24 }}>These questions do not have right or wrong answers. But not having an answer is the same as making one by default — and the default is almost always worse than the intention.</p>
+                <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                  {['What do I want my children to remember about how I used my wealth?', 'What am I building — a lifestyle, a business, a foundation, or all three?', 'Who is responsible for the financial education of my children if I am not here?', 'What happens to my business interests if I cannot manage them tomorrow?', 'What causes or communities do I want associated with my name after I stop playing?', 'What does financial success look like for my grandchildren — and what do I need to do now to make it possible?', 'Who currently knows where everything is — every account, every document, every advisor — and could act if needed?'].map((q, i) => (
+                    <div key={i} style={{ padding:'14px 18px', background:'#0d0d0d', borderRadius:8, borderLeft:'2px solid #D4A843', display:'flex', gap:12, alignItems:'flex-start' }}>
+                      <span className="bebas" style={{ color:'#D4A843', fontSize:'1rem', flexShrink:0, lineHeight:1.3 }}>{String(i+1).padStart(2,'0')}</span>
+                      <span style={{ color:'#888', fontSize:'0.82rem', lineHeight:1.6 }}>{q}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div style={{ borderRadius:12, padding:'48px 24px', textAlign:'center', background:'linear-gradient(135deg,#0a1a0a 0%,#111 100%)', border:'1px solid #44AA66', marginBottom:48 }}>
+              <div className="bebas" style={{ color:'#44AA66', fontSize:'clamp(1.5rem,5vw,2.5rem)', letterSpacing:'0.03em', lineHeight:1.2 }}>The career ends.</div>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,5vw,2.5rem)', letterSpacing:'0.03em', lineHeight:1.2, marginTop:4 }}>The legacy is just starting.</div>
+              <p style={{ color:'#666', fontSize:'0.85rem', maxWidth:480, margin:'20px auto 0', lineHeight:1.8 }}>Every decision made while the income is coming in is a decision about what follows. The families who build lasting wealth are not the ones who earned the most. They are the ones who were most intentional with what they earned.</p>
+            </div>
+            <div style={{ margin:'0 -16px', padding:'20px 16px', textAlign:'center', background:'#D4A843' }}>
+              <div className="bebas" style={{ color:'black', fontSize:'clamp(1rem,4vw,1.5rem)', letterSpacing:'0.12em' }}>SMART MONEY | FINANCIAL LITERACY FOR PROFESSIONAL ATHLETES</div>
+            </div>
+            <p style={{ textAlign:'center', fontSize:'0.7rem', color:'#444', padding:'20px 0' }}>Built for educational purposes only. Not legal, tax, or financial advice.</p>
+          </div>
+        </section>
+      );
+    }
+
+    function App() {
+      return (
+        <div style={{ background:'#080808', minHeight:'100vh' }}>
+          <div style={{ background:'#0a1a0a', borderBottom:'1px solid #44AA66', padding:'10px 20px', textAlign:'center' }}>
+            <p style={{ color:'#44AA66', fontSize:'0.72rem', letterSpacing:'0.08em', textTransform:'uppercase', margin:0, lineHeight:1.5 }}>
+              <strong>Disclaimer:</strong> This presentation is for <strong>educational purposes only</strong> and does not constitute legal, tax, financial, or estate planning advice. Consult a licensed attorney, CPA, and financial advisor for guidance specific to your situation.
+            </p>
+          </div>
+          <Nav />
+          <CourtDivider />
+          <Hero />
+          <CourtDivider />
+          <Section1 />
+          <CourtDivider />
+          <Section2 />
+          <CourtDivider />
+          <Section3 />
+          <CourtDivider />
+          <Section4 />
+          <CourtDivider />
+          <Section5 />
+          <CourtDivider />
+          <Section6 />
+          <CourtDivider />
+          <Section7 />
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>

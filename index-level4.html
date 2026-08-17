@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Money | Level Four — Alternative Investments</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <script src="/vendor/react.min.js" crossorigin></script>
+  <script src="/vendor/react-dom.min.js" crossorigin></script>
+  <script src="/vendor/prop-types.min.js" crossorigin></script>
+  <script src="/vendor/recharts.js" crossorigin></script>
+  <script src="/vendor/babel.min.js"></script>
+  <script>
+  (function() {
+    Babel.registerPreset("react", function() {
+      return { plugins: [
+        [Babel.availablePlugins["transform-react-jsx"], { runtime: "classic" }],
+        Babel.availablePlugins["transform-react-display-name"]
+      ]};
+    });
+  })();
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: #080808; color: #E8E8E8; font-family: 'Open Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #111; }
+    ::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #D4A843; }
+    .bebas { font-family: 'Bebas Neue', cursive; }
+    .container { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+    @media (min-width: 640px) { .container { padding: 0 24px; } }
+    .card { background: #111111; border-radius: 12px; border: 1px solid #1e1e1e; padding: 20px; }
+    .section-heading { font-family: 'Bebas Neue', cursive; font-size: clamp(2.5rem, 8vw, 4.5rem); letter-spacing: 0.04em; line-height: 1; color: white; text-transform: uppercase; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } .grid-3 { grid-template-columns: 1fr; } }
+    button { font-family: 'Open Sans', sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect } = React;
+
+    function CourtDivider() {
+      return (
+        <div style={{ position:'relative', height:48, overflow:'hidden', display:'flex', alignItems:'center' }}>
+          <svg viewBox="0 0 800 48" style={{ position:'absolute', inset:0, width:'100%', height:'100%', opacity:0.06 }}>
+            <line x1="400" y1="0" x2="400" y2="48" stroke="#D4A843" strokeWidth="2"/>
+            <circle cx="400" cy="24" r="20" stroke="#D4A843" strokeWidth="2" fill="none"/>
+            <path d="M 150 0 Q 200 24 150 48" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+            <path d="M 650 0 Q 600 24 650 48" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+            <rect x="120" y="8" width="70" height="32" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+            <rect x="610" y="8" width="70" height="32" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+          </svg>
+          <div style={{ width:'100%', height:1, background:'linear-gradient(90deg,transparent,#D4A843 20%,#D4A843 80%,transparent)' }}/>
+        </div>
+      );
+    }
+
+    function SectionLabel({ num, title }) {
+      return (
+        <div style={{ marginBottom:40 }}>
+          <p className="bebas" style={{ color:'#D4A843', letterSpacing:'0.1em', fontSize:'1.1rem', marginBottom:8 }}>Section {num}</p>
+          <h2 className="section-heading">{title}</h2>
+          <div style={{ width:64, height:3, background:'#D4A843', borderRadius:2, marginTop:14 }}/>
+        </div>
+      );
+    }
+
+    function ComplianceNote({ children }) {
+      return (
+        <div style={{ borderLeft:'4px solid #D4A843', background:'#0D0D0D', padding:'14px 18px', borderRadius:'0 8px 8px 0', fontSize:'0.78rem', color:'#777', lineHeight:1.7, marginTop:32 }}>
+          <strong style={{ color:'#D4A843' }}>Education note: </strong>{children}
+        </div>
+      );
+    }
+
+    const SECTIONS = [
+      { id:'overview',        label:'Overview' },
+      { id:'private-equity',  label:'Private Equity' },
+      { id:'venture-capital', label:'Venture Capital' },
+      { id:'hedge-funds',     label:'Hedge Funds' },
+      { id:'real-assets',     label:'Real Assets' },
+      { id:'private-credit',  label:'Private Credit' },
+      { id:'crypto',          label:'Digital Assets' },
+    ];
+
+    function Nav() {
+      const [active, setActive] = useState('overview');
+      useEffect(() => {
+        const obs = new IntersectionObserver(entries => { entries.forEach(e => { if (e.isIntersecting) setActive(e.target.id); }); }, { threshold: 0.3 });
+        SECTIONS.forEach(({ id }) => { const el = document.getElementById(id); if (el) obs.observe(el); });
+        return () => obs.disconnect();
+      }, []);
+      const scrollTo = id => document.getElementById(id)?.scrollIntoView({ behavior:'smooth' });
+      return (
+        <nav style={{ position:'sticky', top:0, zIndex:50, width:'100%', background:'rgba(8,8,8,0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid #222' }}>
+          <div className="container">
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height:56, gap:8 }}>
+              <div style={{ display:'flex', flexDirection:'column', lineHeight:1 }}>
+                <span className="bebas" style={{ color:'#D4A843', letterSpacing:'0.1em', fontSize:'1.2rem' }}>SMART MONEY</span>
+                <span style={{ color:'#444', fontSize:'0.55rem', textTransform:'uppercase', letterSpacing:'0.15em', marginTop:2 }}>Level Four</span>
+              </div>
+              <div style={{ display:'flex', gap:2, flexWrap:'wrap', justifyContent:'flex-end' }}>
+                {SECTIONS.map(({ id, label }) => (
+                  <button key={id} onClick={() => scrollTo(id)} style={{ padding:'4px 10px', fontSize:'0.63rem', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em', color: active===id ? '#D4A843' : '#555', background:'none', border:'none', borderBottom: active===id ? '2px solid #D4A843' : '2px solid transparent', cursor:'pointer', whiteSpace:'nowrap' }}>{label}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </nav>
+      );
+    }
+
+    function Hero() {
+      const [vis, setVis] = useState(false);
+      useEffect(() => { setTimeout(() => setVis(true), 100); }, []);
+      return (
+        <section style={{ minHeight:'60vh', display:'flex', flexDirection:'column', justifyContent:'center', padding:'80px 0 60px', background:'radial-gradient(ellipse at 50% 0%, #0d1a0d 0%, #080808 65%)' }}>
+          <div className="container">
+            <div style={{ opacity:vis?1:0, transform:vis?'translateY(0)':'translateY(24px)', transition:'all 0.8s ease' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20 }}>
+                <div style={{ width:40, height:2, background:'#D4A843' }}/>
+                <span className="bebas" style={{ color:'#D4A843', letterSpacing:'0.2em', fontSize:'0.9rem' }}>LEVEL FOUR</span>
+              </div>
+              <h1 className="bebas" style={{ fontSize:'clamp(3rem,12vw,7rem)', letterSpacing:'0.04em', lineHeight:0.9, color:'white', marginBottom:24 }}>Alternative<br/>Investments<br/>&amp; Private<br/>Markets</h1>
+              <p style={{ color:'#888', fontSize:'clamp(0.9rem,2vw,1.1rem)', maxWidth:540, lineHeight:1.8, marginBottom:40 }}>
+                The asset classes pitched to athletes most often are the ones explained least clearly. Private equity, venture, hedge funds, real assets, private credit, and crypto — each has a different risk profile, liquidity structure, and fee model. Understanding them is the only defense against being sold something you don't understand.
+              </p>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:24 }}>
+                {[{ num:'7–12 yrs', label:'Typical PE fund lock-up' }, { num:'2 & 20', label:'Standard hedge fund fee' }, { num:'90%+', label:'Startups that fail to return capital' }].map(({ num, label }) => (
+                  <div key={label}>
+                    <div className="bebas" style={{ color:'#D4A843', fontSize:'2rem', letterSpacing:'0.04em', lineHeight:1 }}>{num}</div>
+                    <div style={{ color:'#444', fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.08em', marginTop:4 }}>{label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    function Section1() {
+      const assetClasses = [
+        { name:'Public Equities', liquid:'Daily', return:'7–10%', risk:'Medium', access:'Anyone', color:'#4488CC' },
+        { name:'Private Equity', liquid:'7–12 yrs', return:'12–18%*', risk:'Medium-High', access:'Accredited/QP', color:'#D4A843' },
+        { name:'Venture Capital', liquid:'10–15 yrs', return:'High / Binary', risk:'Very High', access:'Accredited/QP', color:'#44AA66' },
+        { name:'Hedge Funds', liquid:'Quarterly/Annual', return:'Varies widely', risk:'Varies', access:'Accredited/QP', color:'#9966CC' },
+        { name:'Real Assets', liquid:'Low–Medium', return:'6–12%*', risk:'Low–Medium', access:'Accredited', color:'#E07020' },
+        { name:'Private Credit', liquid:'3–7 yrs', return:'8–14%*', risk:'Medium', access:'Accredited/QP', color:'#4488CC' },
+        { name:'Crypto / Digital', liquid:'Daily (self-custody)', return:'Highly volatile', risk:'Very High', access:'Anyone', color:'#CC3333' },
+      ];
+      return (
+        <section id="overview" style={{ padding:'80px 0' }}>
+          <div className="container">
+            <SectionLabel num="01" title="The Alternatives Landscape" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              "Alternatives" is the catch-all for any investment outside of publicly traded stocks and bonds. They share two common features: limited liquidity and limited transparency. In exchange, they can offer returns and diversification unavailable in public markets — but only if accessed properly and sized appropriately.
+            </p>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>Asset Class Comparison</div>
+              <div style={{ borderRadius:12, overflow:'hidden', border:'1px solid #1a1a1a' }}>
+                <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr 1fr 1fr', gap:0, padding:'10px 16px', background:'#111', borderBottom:'1px solid #1a1a1a' }}>
+                  {['Asset Class','Liquidity','Target Return','Risk','Access'].map(h => <span key={h} style={{ color:'#444', fontSize:'0.62rem', textTransform:'uppercase', letterSpacing:'0.08em' }}>{h}</span>)}
+                </div>
+                {assetClasses.map((a, i) => (
+                  <div key={a.name} style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr 1fr 1fr', gap:0, padding:'12px 16px', background: i%2===0 ? '#0d0d0d' : '#0a0a0a', borderBottom: i<assetClasses.length-1 ? '1px solid #111' : 'none', alignItems:'center' }}>
+                    <span className="bebas" style={{ color:a.color, fontSize:'0.9rem', letterSpacing:'0.04em' }}>{a.name}</span>
+                    <span style={{ color:'#666', fontSize:'0.75rem' }}>{a.liquid}</span>
+                    <span style={{ color:'#888', fontSize:'0.75rem' }}>{a.return}</span>
+                    <span style={{ color:'#666', fontSize:'0.75rem' }}>{a.risk}</span>
+                    <span style={{ color:'#555', fontSize:'0.72rem' }}>{a.access}</span>
+                  </div>
+                ))}
+              </div>
+              <p style={{ color:'#333', fontSize:'0.68rem', marginTop:8 }}>* Historical averages. Past performance does not guarantee future results. Returns shown are illustrative benchmarks.</p>
+            </div>
+            <div className="grid-2">
+              <div className="card" style={{ borderLeft:'3px solid #44AA66', padding:'22px' }}>
+                <div className="bebas" style={{ color:'#44AA66', fontSize:'1rem', letterSpacing:'0.04em', marginBottom:10 }}>The Illiquidity Premium</div>
+                <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, margin:0 }}>Investors who accept locked-up capital earn a premium for that sacrifice. The illiquidity premium — the extra return offered by private markets over their public equivalents — is the core rationale for alternatives. But it only materializes if the investor can genuinely afford to not touch the capital for the full term.</p>
+              </div>
+              <div className="card" style={{ borderLeft:'3px solid #CC3333', padding:'22px' }}>
+                <div className="bebas" style={{ color:'#CC3333', fontSize:'1rem', letterSpacing:'0.04em', marginBottom:10 }}>The Access Problem</div>
+                <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, margin:0 }}>The best private equity and venture funds are not open to new investors. Top-tier managers are oversubscribed — they don't need capital. What athletes are typically offered is not what institutional investors access. Demand to know where a fund ranks within its peer group before committing.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    function Section2() {
+      const [open, setOpen] = useState(null);
+      const terms = [
+        { term:'General Partner (GP)', def:'The fund manager. Makes all investment decisions. Earns management fees and carried interest. Has fiduciary duty to limited partners.' },
+        { term:'Limited Partner (LP)', def:'The investor. Commits capital to the fund. Has no say in investment decisions. Liability limited to committed capital.' },
+        { term:'Management Fee', def:'Annual fee paid to the GP regardless of performance. Typically 1.5–2% of committed capital. Paid even when the fund is losing money.' },
+        { term:'Carried Interest ("Carry")', def:'The GP\'s share of profits above the hurdle rate. Typically 20%. If the fund returns $200M on $100M invested, the GP earns 20% of the $100M gain = $20M. The primary incentive for the GP.' },
+        { term:'Hurdle Rate', def:'The minimum annual return the fund must deliver before the GP earns carry. Typically 8%. Below this, investors receive all returns. Above this, carry kicks in.' },
+        { term:'The J-Curve', def:'Early in a fund\'s life, returns are negative — fees are charged while investments haven\'t yet matured. Returns improve as companies grow and are exited. The J-shaped return profile is normal and expected.' },
+        { term:'Vintage Year', def:'The year a fund makes its first investment. Vintage year matters: funds raised before a recession often outperform those raised at peak valuations. Diversifying across vintage years is standard institutional practice.' },
+        { term:'Capital Call', def:'When the fund is ready to invest, it "calls" committed capital from LPs — typically with 10 days\' notice. Missing a capital call can result in severe penalties or loss of the LP interest.' },
+      ];
+      return (
+        <section id="private-equity" style={{ padding:'80px 0', background:'#080808' }}>
+          <div className="container">
+            <SectionLabel num="02" title="Private Equity" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              Private equity funds raise capital from investors (limited partners), use it to acquire private companies, improve them operationally, and sell them for a profit — typically over a 7–12 year period. The returns can be significant. So can the lock-up, the fees, and the minimum investment.
+            </p>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>How a PE Fund Works</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:0, borderRadius:12, overflow:'hidden', border:'1px solid #1a1a1a', marginBottom:24 }}>
+                {[{ phase:'Fundraising', yr:'Year 0–1', desc:'GP raises capital commitments from LPs. Minimum investments typically $1M–$5M+. Capital is committed but not yet deployed.' }, { phase:'Investment Period', yr:'Year 1–5', desc:'GP identifies, underwrites, and acquires portfolio companies. Capital is called as deals are made. Fees charged on committed capital.' }, { phase:'Value Creation', yr:'Year 3–8', desc:'GP works with portfolio companies to improve operations, revenue, and margins. Management teams are often replaced or upgraded.' }, { phase:'Exit & Distribution', yr:'Year 5–12', desc:'Companies are sold (to strategic buyers, other PE firms, or via IPO). Proceeds distributed to LPs net of fees and carry.' }].map(({ phase, yr, desc }, i) => (
+                  <div key={phase} style={{ display:'grid', gridTemplateColumns:'140px 80px 1fr', gap:16, padding:'16px 20px', background: i%2===0 ? '#0d0d0d' : '#0a0a0a', borderBottom: i<3 ? '1px solid #111' : 'none', alignItems:'flex-start' }}>
+                    <span className="bebas" style={{ color:'#D4A843', fontSize:'0.9rem', letterSpacing:'0.04em' }}>{phase}</span>
+                    <span style={{ color:'#555', fontSize:'0.72rem' }}>{yr}</span>
+                    <span style={{ color:'#777', fontSize:'0.78rem', lineHeight:1.6 }}>{desc}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ marginBottom:40 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>Key Terms to Know</div>
+              <p style={{ color:'#888', marginBottom:20, fontSize:'0.85rem', lineHeight:1.8 }}>Every PE pitch will use these terms. Understanding them is the difference between knowing what you're signing and trusting someone to explain it later.</p>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                {terms.map((t, i) => (
+                  <div key={t.term} style={{ borderRadius:8, overflow:'hidden', cursor:'pointer', border:`1px solid ${open===i ? '#D4A84340' : '#1a1a1a'}` }}>
+                    <div onClick={() => setOpen(open===i ? null : i)} style={{ padding:'12px 18px', display:'flex', justifyContent:'space-between', alignItems:'center', background: open===i ? '#D4A84308' : '#0d0d0d' }}>
+                      <span className="bebas" style={{ color: open===i ? '#D4A843' : '#aaa', fontSize:'0.9rem', letterSpacing:'0.04em' }}>{t.term}</span>
+                      <span style={{ color:'#444', fontSize:'0.7rem' }}>{open===i ? '▲' : '▼'}</span>
+                    </div>
+                    {open===i && <div style={{ padding:'12px 18px 16px', background:'#0a0a0a' }}><p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, margin:0 }}>{t.def}</p></div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="card" style={{ background:'linear-gradient(135deg,#1a1200,#111)', border:'1px solid #D4A843', padding:'24px' }}>
+              <div className="bebas" style={{ color:'#D4A843', fontSize:'1rem', letterSpacing:'0.08em', marginBottom:10 }}>The Question to Ask Before Any PE Commitment</div>
+              <p style={{ color:'#aaa', fontSize:'0.85rem', lineHeight:1.8, margin:0 }}>What is this fund's track record across its prior vintages, net of all fees? Top-quartile PE funds genuinely outperform public markets. Bottom-quartile funds underperform them — and charge fees for the privilege. Request audited performance data and compare it to the Cambridge Associates PE benchmark for the same vintage years.</p>
+            </div>
+            <ComplianceNote>Private equity investments are illiquid, unregistered securities. Minimums are typically $250K–$5M+. Accredited investor or qualified purchaser status required. Past fund performance does not guarantee future results.</ComplianceNote>
+          </div>
+        </section>
+      );
+    }
+
+    function Section3() {
+      const stages = [
+        { stage:'Pre-Seed / Seed', check:'$250K–$2M', valuation:'$1M–$10M', who:'Founders + friends/family + angels', survival:'~10% reach Series A', color:'#44AA66' },
+        { stage:'Series A', check:'$2M–$15M', valuation:'$10M–$50M', who:'Early-stage VC funds', survival:'~30% reach Series B', color:'#D4A843' },
+        { stage:'Series B', check:'$15M–$50M', valuation:'$50M–$200M', who:'Growth-stage VC funds', survival:'~50% reach Series C', color:'#4488CC' },
+        { stage:'Series C+', check:'$50M–$300M+', valuation:'$200M–$1B+', who:'Late-stage VC, crossover funds', survival:'~30% reach IPO/acquisition', color:'#9966CC' },
+        { stage:'Exit (IPO / M&A)', check:'—', valuation:'Market-determined', who:'Public investors / strategic buyer', survival:'Liquidity event for all prior investors', color:'#E07020' },
+      ];
+      return (
+        <section id="venture-capital" style={{ padding:'80px 0' }}>
+          <div className="container">
+            <SectionLabel num="03" title="Venture Capital" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              Venture capital funds early-stage companies in exchange for equity. The return profile is binary: most investments return nothing, a few return everything. The asset class works for institutional funds deploying across hundreds of companies. It is significantly riskier for an individual investor making three bets with $500K each.
+            </p>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>The Funding Stages</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {stages.map(s => (
+                  <div key={s.stage} className="card" style={{ padding:'20px 24px', borderLeft:`3px solid ${s.color}` }}>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12, marginBottom:10 }}>
+                      <div><div className="bebas" style={{ color:s.color, fontSize:'1rem', letterSpacing:'0.04em' }}>{s.stage}</div></div>
+                      <div><div style={{ color:'#444', fontSize:'0.62rem', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:2 }}>Check Size</div><div style={{ color:'#aaa', fontSize:'0.78rem' }}>{s.check}</div></div>
+                      <div><div style={{ color:'#444', fontSize:'0.62rem', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:2 }}>Valuation Range</div><div style={{ color:'#aaa', fontSize:'0.78rem' }}>{s.valuation}</div></div>
+                    </div>
+                    <div style={{ display:'flex', justifyContent:'space-between', flexWrap:'wrap', gap:8 }}>
+                      <span style={{ color:'#555', fontSize:'0.72rem' }}>{s.who}</span>
+                      <span style={{ color: s.color, fontSize:'0.7rem', fontWeight:600 }}>{s.survival}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>What Athletes Are Actually Offered</div>
+              <div className="grid-2">
+                {[{ title:'Direct Investment (Angel)', color:'#D4A843', body:'Writing a check directly into a startup. You own equity (usually common stock or a SAFE). No intermediary. High risk, high potential return, zero liquidity until exit. Most athlete deals are structured this way.' }, { title:'VC Fund LP', color:'#4488CC', body:'Investing into a fund that deploys capital across many startups. More diversification than a single bet. Less control, longer lock-up. Minimum typically $250K–$1M. Access to top-tier funds is difficult — most athletes are offered mid-tier or emerging managers.' }, { title:'SPV (Special Purpose Vehicle)', color:'#44AA66', body:'A one-company fund created to allow a specific investment. Investors pool capital to participate in a single deal they otherwise couldn\'t access individually. Common in athlete circles. Review the fee structure carefully — SPVs often layer additional fees on top of the underlying deal.' }, { title:'"Equity for Endorsement"', color:'#CC3333', body:'The company offers equity instead of (or in addition to) a cash endorsement fee. The equity is almost always common stock. Common stock is last in line in any exit. Understand the full cap table and preference stack before treating this as a meaningful asset.' }].map(({ title, color, body }) => (
+                  <div key={title} className="card" style={{ padding:'22px', borderTop:`3px solid ${color}` }}>
+                    <div className="bebas" style={{ color, fontSize:'1rem', letterSpacing:'0.04em', marginBottom:10 }}>{title}</div>
+                    <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, margin:0 }}>{body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ borderRadius:12, padding:'24px', background:'#0f0606', border:'1px solid #CC333330', marginBottom:32 }}>
+              <div style={{ display:'flex', gap:14, alignItems:'flex-start' }}>
+                <span style={{ color:'#CC3333', fontSize:'1.4rem', lineHeight:1, flexShrink:0 }}>⚠</span>
+                <div>
+                  <div className="bebas" style={{ color:'#CC3333', fontSize:'1rem', letterSpacing:'0.06em', marginBottom:8 }}>The Portfolio Math Problem</div>
+                  <p style={{ color:'#aaa', fontSize:'0.82rem', lineHeight:1.8, margin:0 }}>
+                    Venture capital works as a portfolio strategy. A top VC fund makes 30–50 bets knowing most will fail, counting on 1–2 to return the entire fund. An athlete making 3–5 individual startup investments does not have that coverage. The math that works for an institutional fund does not work at the individual level. If the position is not sized as money one can afford to lose entirely, it's too large.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <ComplianceNote>Venture capital investments are high-risk, illiquid, and suitable only for investors who can absorb a total loss of the invested capital. Accredited investor status is required for most opportunities.</ComplianceNote>
+          </div>
+        </section>
+      );
+    }
+
+    function Section4() {
+      const strategies = [
+        { name:'Long/Short Equity', color:'#D4A843', desc:'Fund holds long positions in stocks expected to rise and short positions in stocks expected to fall. Can profit in both up and down markets. Performance depends heavily on manager skill at stock selection.' },
+        { name:'Global Macro', color:'#4488CC', desc:'Fund takes large positions based on macroeconomic views — currencies, interest rates, commodities, country indices. High conviction, high volatility. Think: betting on the direction of the dollar or Japan\'s bond market.' },
+        { name:'Event-Driven', color:'#44AA66', desc:'Fund exploits corporate events: mergers, spin-offs, bankruptcies, restructurings. Returns are idiosyncratic — driven by deal outcomes rather than market direction. Less correlated with public markets.' },
+        { name:'Quantitative / Systematic', color:'#9966CC', desc:'Fund uses algorithms and statistical models to identify and exploit market patterns at scale. Decisions are made by systems, not humans. Performance is difficult to evaluate and opaque to outside observers.' },
+        { name:'Multi-Strategy', color:'#E07020', desc:'Fund allocates across multiple strategies simultaneously. Theoretically provides diversification within a single fund. Fees can be layered. Best funds are highly sought-after and closed to new investors.' },
+      ];
+      return (
+        <section id="hedge-funds" style={{ padding:'80px 0', background:'#080808' }}>
+          <div className="container">
+            <SectionLabel num="04" title="Hedge Funds" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              A hedge fund is a pooled investment vehicle with broad mandate — it can go long, short, use leverage, trade derivatives, and invest in almost anything. The "hedge" in hedge fund originally referred to hedging long positions with shorts. Today the term covers hundreds of distinct strategies. The defining feature is not what they do — it's who can invest (accredited and qualified purchasers only) and what they charge.
+            </p>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>The Fee Structure</div>
+              <p style={{ color:'#888', marginBottom:20, fontSize:'0.85rem', lineHeight:1.8 }}>The industry standard is "2 and 20" — 2% annual management fee plus 20% of profits. Some elite funds charge more. Understanding what you're actually paying is critical to evaluating real net-of-fee performance.</p>
+              <div className="card" style={{ padding:'28px', marginBottom:24 }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:20, marginBottom:24 }}>
+                  {[{ label:'Management Fee', val:'2% / year', desc:'Charged on assets under management, regardless of performance', color:'#CC3333' }, { label:'Performance Fee', val:'20% of profits', desc:'Charged on gains above the high-water mark', color:'#E07020' }, { label:'High-Water Mark', val:'Protection floor', desc:'Performance fee only applies to new highs — you don\'t pay twice on recovered losses', color:'#44AA66' }, { label:'Lock-Up Period', val:'1–3 years typical', desc:'Capital committed for this period cannot be redeemed', color:'#4488CC' }].map(({ label, val, desc, color }) => (
+                    <div key={label} style={{ textAlign:'center', padding:'20px', background:'#0d0d0d', borderRadius:10, border:'1px solid #1a1a1a' }}>
+                      <div className="bebas" style={{ color, fontSize:'1.1rem', letterSpacing:'0.04em', marginBottom:6 }}>{val}</div>
+                      <div style={{ color:'white', fontSize:'0.75rem', fontWeight:600, marginBottom:6 }}>{label}</div>
+                      <div style={{ color:'#555', fontSize:'0.7rem', lineHeight:1.5 }}>{desc}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ padding:'14px 18px', background:'#0a0a0a', borderRadius:8, borderLeft:'2px solid #CC3333' }}>
+                  <p style={{ color:'#777', fontSize:'0.8rem', lineHeight:1.7, margin:0 }}>Example: $1M invested. Fund returns 15% gross ($150K gain). Management fee: $20K. Performance fee: 20% of $150K = $30K. Net return: $100K, or 10%. The fund earned 15%, you earned 10%. This math compounds significantly over time.</p>
+                </div>
+              </div>
+            </div>
+            <div style={{ marginBottom:40 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>Common Strategies</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {strategies.map(s => (
+                  <div key={s.name} className="card" style={{ borderLeft:`3px solid ${s.color}`, padding:'18px 24px' }}>
+                    <div className="bebas" style={{ color:s.color, fontSize:'1rem', letterSpacing:'0.04em', marginBottom:8 }}>{s.name}</div>
+                    <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, margin:0 }}>{s.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="card" style={{ background:'linear-gradient(135deg,#1a1200,#111)', border:'1px solid #D4A843', padding:'24px' }}>
+              <div className="bebas" style={{ color:'#D4A843', fontSize:'1rem', letterSpacing:'0.08em', marginBottom:10 }}>What to Ask Before Investing</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {['What is the audited net-of-fee track record, by year, over a full market cycle?', 'What is the exact redemption process, notice period, and any gate provisions?', 'What is the fund\'s maximum drawdown in prior down markets?', 'Is the manager invested alongside me? What is their personal allocation?', 'Who is the auditor and prime broker — are they independent third parties?'].map((q, i) => (
+                  <div key={i} style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
+                    <span className="bebas" style={{ color:'#D4A843', fontSize:'0.9rem', flexShrink:0 }}>{i+1}.</span>
+                    <span style={{ color:'#777', fontSize:'0.8rem', lineHeight:1.6 }}>{q}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <ComplianceNote>Hedge funds are unregistered investment vehicles available only to accredited investors and qualified purchasers. Minimum investments are typically $1M+. Performance data presented by managers is often gross of fees — always request audited net-of-fee returns.</ComplianceNote>
+          </div>
+        </section>
+      );
+    }
+
+    function Section5() {
+      const assets = [
+        { name:'Real Estate', icon:'🏢', color:'#D4A843', liquid:'Low', return:'6–12%*', how:'Direct ownership, REITs, private real estate funds. Covered in depth in Level Two. Provides income (rent) and appreciation. Leverage amplifies both gains and losses.', watch:'Leverage, vacancy risk, illiquidity, management burden, geographic concentration.' },
+        { name:'Farmland', icon:'🌾', color:'#44AA66', liquid:'Very Low', return:'7–11%*', how:'Ownership of agricultural land leased to farmers. Returns come from rent and land appreciation. Low correlation to stocks. Inflation hedge. Platforms like FarmTogether and AcreTrader have lowered the minimum access point.', watch:'Weather and climate risk, tenant quality, water rights complexity, long-term illiquidity.' },
+        { name:'Infrastructure', icon:'🔌', color:'#4488CC', liquid:'Low–Medium', return:'7–12%*', how:'Investment in physical systems: energy pipelines, toll roads, airports, broadband networks, utilities. Long-duration cash flows backed by contracts or regulation. Often inflation-linked. Accessed via private infrastructure funds.', watch:'Regulatory risk, political risk (government can change terms), long lock-ups, high minimums.' },
+        { name:'Commodities', icon:'🛢', color:'#E07020', liquid:'High (futures)', return:'Inflation-linked', how:'Gold, oil, agricultural products, metals. Primarily held as an inflation hedge or portfolio diversifier. Futures-based commodity exposure doesn\'t have the same profile as physical ownership. Gold in particular has a long track record as a store of value in inflationary periods.', watch:'No income produced by most commodities. Futures roll costs can erode returns. Storage costs for physical assets.' },
+        { name:'Timber / Timberland', icon:'🌲', color:'#9966CC', liquid:'Very Low', return:'6–9%*', how:'Ownership of forestland harvested for lumber. Biological growth is a unique return driver — trees grow in value independent of markets. Low correlation to equities. Accessed via private timberland funds or direct ownership.', watch:'Harvest timing flexibility required. Very long investment horizon. Limited liquidity. Environmental/regulatory exposure.' },
+      ];
+      return (
+        <section id="real-assets" style={{ padding:'80px 0' }}>
+          <div className="container">
+            <SectionLabel num="05" title="Real Assets" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              Real assets are physical or tangible assets — land, infrastructure, commodities, timber. They share two characteristics that make them valuable in a portfolio: they tend to hold value during inflation, and they have low correlation to public markets. For athletes with long time horizons and substantial capital, real assets can be a meaningful allocation.
+            </p>
+            <div style={{ display:'flex', flexDirection:'column', gap:16, marginBottom:40 }}>
+              {assets.map(a => (
+                <div key={a.name} className="card" style={{ padding:'24px', borderLeft:`3px solid ${a.color}` }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12, flexWrap:'wrap', gap:8 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                      <span style={{ fontSize:'1.6rem' }}>{a.icon}</span>
+                      <div className="bebas" style={{ color:a.color, fontSize:'1.2rem', letterSpacing:'0.04em' }}>{a.name}</div>
+                    </div>
+                    <div style={{ display:'flex', gap:8 }}>
+                      <span style={{ padding:'3px 10px', background:`${a.color}15`, borderRadius:20, border:`1px solid ${a.color}30`, color:a.color, fontSize:'0.68rem', fontWeight:600 }}>{a.return}</span>
+                      <span style={{ padding:'3px 10px', background:'#111', borderRadius:20, border:'1px solid #1a1a1a', color:'#555', fontSize:'0.68rem' }}>Liquidity: {a.liquid}</span>
+                    </div>
+                  </div>
+                  <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, marginBottom:12 }}>{a.how}</p>
+                  <div style={{ padding:'10px 14px', background:'#0d0d0d', borderRadius:6 }}>
+                    <span style={{ color:'#CC3333', fontSize:'0.62rem', textTransform:'uppercase', letterSpacing:'0.08em', fontWeight:600 }}>Watch for: </span>
+                    <span style={{ color:'#555', fontSize:'0.75rem' }}>{a.watch}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <ComplianceNote>Target return ranges shown are illustrative historical benchmarks and do not guarantee future results. Real asset investments are illiquid and require substantial minimum capital. Consult a fiduciary advisor before allocating.</ComplianceNote>
+          </div>
+        </section>
+      );
+    }
+
+    function Section6() {
+      const types = [
+        { name:'Direct Lending', color:'#D4A843', desc:'Loans made directly to mid-market companies (too large for a bank, too small for the bond market). The fund acts as the bank. Floating rate interest — returns rise with interest rates. First lien position in most structures (paid first if borrower defaults).', yield:'8–12%*', risk:'Medium' },
+        { name:'Mezzanine Debt', color:'#E07020', desc:'Subordinated debt that sits between senior debt and equity in the capital structure. Higher yield than direct lending because it\'s last in line among debt holders. Often includes equity warrants — the right to buy shares at a fixed price — providing upside beyond the interest payments.', yield:'12–18%*', risk:'Medium-High' },
+        { name:'Distressed Debt', color:'#CC3333', desc:'Purchasing the debt of companies in financial distress at a discount to face value. If the company restructures successfully, the debt recovers in value. If it liquidates, returns depend on where in the capital structure the debt sits. Requires deep credit analysis and often active involvement in restructuring.', yield:'15–25%*', risk:'High' },
+        { name:'Real Estate Debt', color:'#4488CC', desc:'Loans secured by real estate collateral. Bridge loans, construction loans, and preferred equity structures. Returns come from interest payments. More liquid than private equity real estate — loans mature in 1–5 years rather than 7–12. Secured by the underlying property.', yield:'8–14%*', risk:'Medium' },
+      ];
+      return (
+        <section id="private-credit" style={{ padding:'80px 0', background:'#080808' }}>
+          <div className="container">
+            <SectionLabel num="06" title="Private Credit" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              Private credit is lending outside the banking system. When banks tighten lending standards, borrowers turn to private credit funds. Returns come from interest payments rather than equity appreciation — providing income regardless of whether markets go up or down. In a rising-rate environment, floating-rate private credit performs particularly well.
+            </p>
+            <div style={{ marginBottom:40 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>Private vs. Public Credit</div>
+              <div className="grid-2" style={{ marginBottom:24 }}>
+                <div className="card" style={{ padding:'22px', borderTop:'3px solid #444' }}>
+                  <div className="bebas" style={{ color:'#888', fontSize:'1rem', letterSpacing:'0.04em', marginBottom:10 }}>Public Bonds (Investment Grade)</div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                    {[['Yield', '4–6%'], ['Liquidity', 'Daily'], ['Minimums', '$1,000+'], ['Transparency', 'Full — public filings'], ['Risk', 'Low–Medium']].map(([k,v]) => (
+                      <div key={k} style={{ display:'flex', justifyContent:'space-between', padding:'6px 0', borderBottom:'1px solid #111' }}>
+                        <span style={{ color:'#555', fontSize:'0.75rem' }}>{k}</span>
+                        <span style={{ color:'#888', fontSize:'0.75rem' }}>{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="card" style={{ padding:'22px', borderTop:'3px solid #D4A843' }}>
+                  <div className="bebas" style={{ color:'#D4A843', fontSize:'1rem', letterSpacing:'0.04em', marginBottom:10 }}>Private Credit (Direct Lending)</div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                    {[['Yield', '8–14%*'], ['Liquidity', '3–7 year lock-up'], ['Minimums', '$250K–$1M+'], ['Transparency', 'Limited — fund-level'], ['Risk', 'Medium']].map(([k,v]) => (
+                      <div key={k} style={{ display:'flex', justifyContent:'space-between', padding:'6px 0', borderBottom:'1px solid #111' }}>
+                        <span style={{ color:'#555', fontSize:'0.75rem' }}>{k}</span>
+                        <span style={{ color:k==='Yield' ? '#D4A843' : '#888', fontSize:'0.75rem' }}>{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:12, marginBottom:40 }}>
+              {types.map(t => (
+                <div key={t.name} className="card" style={{ padding:'22px 24px', borderLeft:`3px solid ${t.color}` }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10, flexWrap:'wrap', gap:8 }}>
+                    <div className="bebas" style={{ color:t.color, fontSize:'1rem', letterSpacing:'0.04em' }}>{t.name}</div>
+                    <div style={{ display:'flex', gap:8 }}>
+                      <span style={{ padding:'3px 10px', background:`${t.color}15`, borderRadius:20, border:`1px solid ${t.color}30`, color:t.color, fontSize:'0.68rem', fontWeight:600 }}>{t.yield}</span>
+                      <span style={{ padding:'3px 10px', background:'#111', borderRadius:20, border:'1px solid #1a1a1a', color:'#555', fontSize:'0.68rem' }}>Risk: {t.risk}</span>
+                    </div>
+                  </div>
+                  <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, margin:0 }}>{t.desc}</p>
+                </div>
+              ))}
+            </div>
+            <ComplianceNote>Private credit investments are illiquid and require accredited investor or qualified purchaser status. Yield ranges are illustrative targets — actual returns vary by fund, manager, and market environment.</ComplianceNote>
+          </div>
+        </section>
+      );
+    }
+
+    function Section7() {
+      const risks = [
+        { risk:'Custody Risk', desc:'Crypto held on an exchange is not truly owned — it\'s an IOU. Exchange failures (FTX, Celsius, Voyager) wiped out billions in customer assets. True ownership requires self-custody: a hardware wallet where you hold the private keys.' },
+        { risk:'Volatility', desc:'Bitcoin has declined more than 80% from peak to trough — multiple times. Ethereum similarly. This is not a bug. It is a feature of an asset class without earnings, dividends, or intrinsic cash flow. Size accordingly.' },
+        { risk:'Tax Treatment', desc:'Every crypto transaction is a taxable event in the US — including swapping one token for another. Gains are short-term (ordinary income) if held under a year or long-term (0/15/20%) if held over a year. Most crypto investors dramatically underpay taxes without realizing it.' },
+        { risk:'DeFi and Protocol Risk', desc:'Decentralized finance (DeFi) protocols have been exploited for billions of dollars in smart contract hacks. The code is law — if the code has a bug, there is no FDIC, no customer support, and no recourse. Do not commit capital to DeFi without understanding exactly what the protocol does.' },
+        { risk:'Regulatory Risk', desc:'The regulatory framework for crypto in the US remains unsettled. Tokens that are currently tradeable could be reclassified as securities. Stablecoin legislation, exchange licensing, and tax reporting requirements are all in flux.' },
+      ];
+      return (
+        <section id="crypto" style={{ padding:'80px 0' }}>
+          <div className="container">
+            <SectionLabel num="07" title="Digital Assets" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              Cryptocurrency and digital assets are the most hyped, most misunderstood, and most mis-sold asset class in professional athlete circles. There are legitimate uses and genuine investment cases. There are also catastrophic risks that are poorly understood by most retail investors. This section is not an endorsement or a dismissal — it is an education.
+            </p>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>What You're Actually Buying</div>
+              <div className="grid-2" style={{ marginBottom:24 }}>
+                {[{ name:'Bitcoin (BTC)', color:'#E07020', desc:'The original cryptocurrency. Fixed supply of 21 million coins. No issuer, no company, no CEO. The investment thesis is digital scarcity — like gold, but with verifiable supply and global portability. The most institutionally accepted crypto asset.', thesis:'Store of value / digital gold' }, { name:'Ethereum (ETH)', color:'#9966CC', desc:'A programmable blockchain. "Ether" is the currency used to pay for computation on the network. The investment thesis is that the Ethereum network is infrastructure for a new financial system. More complex risk profile than Bitcoin — tied to developer adoption.', thesis:'Programmable blockchain infrastructure' }, { name:'Altcoins / Tokens', color:'#CC3333', desc:'The thousands of other cryptocurrencies beyond BTC and ETH. Risks range from legitimate emerging projects to outright frauds. Without deep technical due diligence, the risk of losing 100% is high. Most altcoin pitches are investment schemes with a technology veneer.', thesis:'Highly speculative — varies by project' }, { name:'Stablecoins', color:'#44AA66', desc:'Tokens pegged to a fiat currency (typically USD). Used to move value on-chain without exposure to crypto volatility. Not an investment — a mechanism. USD Coin (USDC) and Tether (USDT) are the largest. Not all stablecoins are equally safe — the Terra/LUNA collapse erased $40B in value overnight.', thesis:'Liquidity tool, not an investment' }].map(({ name, color, desc, thesis }) => (
+                  <div key={name} className="card" style={{ padding:'22px', borderTop:`3px solid ${color}` }}>
+                    <div className="bebas" style={{ color, fontSize:'1.1rem', letterSpacing:'0.04em', marginBottom:6 }}>{name}</div>
+                    <div style={{ color:'#444', fontSize:'0.68rem', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:12 }}>{thesis}</div>
+                    <p style={{ color:'#777', fontSize:'0.8rem', lineHeight:1.8, margin:0 }}>{desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>Five Risks Every Investor Must Understand</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {risks.map((r, i) => (
+                  <div key={r.risk} style={{ display:'flex', gap:16, padding:'16px 20px', background:'#0d0d0d', borderRadius:8, border:'1px solid #161616', alignItems:'flex-start' }}>
+                    <span className="bebas" style={{ color:'#CC3333', fontSize:'1.1rem', flexShrink:0, lineHeight:1.3 }}>{String(i+1).padStart(2,'0')}</span>
+                    <div><div className="bebas" style={{ color:'white', fontSize:'0.85rem', letterSpacing:'0.04em', marginBottom:6 }}>{r.risk}</div><p style={{ color:'#666', fontSize:'0.8rem', lineHeight:1.7, margin:0 }}>{r.desc}</p></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="card" style={{ background:'linear-gradient(135deg,#1a1200,#111)', border:'1px solid #D4A843', padding:'28px', marginBottom:48 }}>
+              <div className="bebas" style={{ color:'#D4A843', fontSize:'1rem', letterSpacing:'0.08em', marginBottom:12 }}>The Sizing Rule</div>
+              <p style={{ color:'#aaa', fontSize:'0.85rem', lineHeight:1.8, margin:0 }}>
+                If an allocation to digital assets makes sense given the broader portfolio, position size should reflect the risk profile: high volatility, potential for total loss, and no earnings or dividends to anchor valuation. Most institutional frameworks cap crypto at 1–5% of a total portfolio. At that size, a 100% decline is painful but survivable. At 30% of net worth, it is not.
+              </p>
+            </div>
+            <div style={{ borderRadius:12, padding:'40px 24px', textAlign:'center', background:'linear-gradient(135deg,#1a1200 0%,#111 100%)', border:'1px solid #D4A843', marginBottom:48 }}>
+              <div className="bebas" style={{ color:'#D4A843', fontSize:'clamp(1.5rem,5vw,2.5rem)', letterSpacing:'0.03em', lineHeight:1.2 }}>The best alternative investment</div>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,5vw,2.5rem)', letterSpacing:'0.03em', lineHeight:1.2, marginTop:4 }}>is one you understand before you buy it.</div>
+            </div>
+            <div style={{ margin:'0 -16px', padding:'20px 16px', textAlign:'center', background:'#D4A843' }}>
+              <div className="bebas" style={{ color:'black', fontSize:'clamp(1rem,4vw,1.5rem)', letterSpacing:'0.12em' }}>SMART MONEY | FINANCIAL LITERACY FOR PROFESSIONAL ATHLETES</div>
+            </div>
+            <p style={{ textAlign:'center', fontSize:'0.7rem', color:'#444', padding:'20px 0' }}>Built for educational purposes only. Not investment advice.</p>
+          </div>
+        </section>
+      );
+    }
+
+    function App() {
+      return (
+        <div style={{ background:'#080808', minHeight:'100vh' }}>
+          <div style={{ background:'#1a0a00', borderBottom:'1px solid #D4A843', padding:'10px 20px', textAlign:'center' }}>
+            <p style={{ color:'#D4A843', fontSize:'0.72rem', letterSpacing:'0.08em', textTransform:'uppercase', margin:0, lineHeight:1.5 }}>
+              <strong>Disclaimer:</strong> This presentation is for <strong>educational purposes only</strong> and does not constitute investment advice. All return figures are illustrative. Alternatives involve significant risk including illiquidity and total loss of capital. Consult a licensed fiduciary advisor before investing.
+            </p>
+          </div>
+          <Nav />
+          <CourtDivider />
+          <Hero />
+          <CourtDivider />
+          <Section1 />
+          <CourtDivider />
+          <Section2 />
+          <CourtDivider />
+          <Section3 />
+          <CourtDivider />
+          <Section4 />
+          <CourtDivider />
+          <Section5 />
+          <CourtDivider />
+          <Section6 />
+          <CourtDivider />
+          <Section7 />
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>

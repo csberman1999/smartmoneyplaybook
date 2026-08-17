@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Money | Level Five — Building a Business</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <script src="/vendor/react.min.js" crossorigin></script>
+  <script src="/vendor/react-dom.min.js" crossorigin></script>
+  <script src="/vendor/prop-types.min.js" crossorigin></script>
+  <script src="/vendor/recharts.js" crossorigin></script>
+  <script src="/vendor/babel.min.js"></script>
+  <script>
+  (function() {
+    Babel.registerPreset("react", function() {
+      return { plugins: [
+        [Babel.availablePlugins["transform-react-jsx"], { runtime: "classic" }],
+        Babel.availablePlugins["transform-react-display-name"]
+      ]};
+    });
+  })();
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: #080808; color: #E8E8E8; font-family: 'Open Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #111; }
+    ::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #D4A843; }
+    .bebas { font-family: 'Bebas Neue', cursive; }
+    .container { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+    @media (min-width: 640px) { .container { padding: 0 24px; } }
+    .card { background: #111111; border-radius: 12px; border: 1px solid #1e1e1e; padding: 20px; }
+    .section-heading { font-family: 'Bebas Neue', cursive; font-size: clamp(2.5rem, 8vw, 4.5rem); letter-spacing: 0.04em; line-height: 1; color: white; text-transform: uppercase; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } .grid-3 { grid-template-columns: 1fr; } }
+    button { font-family: 'Open Sans', sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect } = React;
+
+    function CourtDivider() {
+      return (
+        <div style={{ position:'relative', height:48, overflow:'hidden', display:'flex', alignItems:'center' }}>
+          <svg viewBox="0 0 800 48" style={{ position:'absolute', inset:0, width:'100%', height:'100%', opacity:0.06 }}>
+            <line x1="400" y1="0" x2="400" y2="48" stroke="#D4A843" strokeWidth="2"/>
+            <circle cx="400" cy="24" r="20" stroke="#D4A843" strokeWidth="2" fill="none"/>
+            <path d="M 150 0 Q 200 24 150 48" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+            <path d="M 650 0 Q 600 24 650 48" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+            <rect x="120" y="8" width="70" height="32" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+            <rect x="610" y="8" width="70" height="32" stroke="#D4A843" strokeWidth="1.5" fill="none"/>
+          </svg>
+          <div style={{ width:'100%', height:1, background:'linear-gradient(90deg,transparent,#D4A843 20%,#D4A843 80%,transparent)' }}/>
+        </div>
+      );
+    }
+
+    function SectionLabel({ num, title }) {
+      return (
+        <div style={{ marginBottom:40 }}>
+          <p className="bebas" style={{ color:'#D4A843', letterSpacing:'0.1em', fontSize:'1.1rem', marginBottom:8 }}>Section {num}</p>
+          <h2 className="section-heading">{title}</h2>
+          <div style={{ width:64, height:3, background:'#D4A843', borderRadius:2, marginTop:14 }}/>
+        </div>
+      );
+    }
+
+    function ComplianceNote({ children }) {
+      return (
+        <div style={{ borderLeft:'4px solid #D4A843', background:'#0D0D0D', padding:'14px 18px', borderRadius:'0 8px 8px 0', fontSize:'0.78rem', color:'#777', lineHeight:1.7, marginTop:32 }}>
+          <strong style={{ color:'#D4A843' }}>Education note: </strong>{children}
+        </div>
+      );
+    }
+
+    const SECTIONS = [
+      { id:'mindset',    label:'The Mindset' },
+      { id:'validation', label:'Idea to Entity' },
+      { id:'funding',    label:'Funding' },
+      { id:'operations', label:'Operations' },
+      { id:'economics',  label:'Unit Economics' },
+      { id:'brand-ip',   label:'Brand & IP' },
+      { id:'the-exit',   label:'The Exit' },
+    ];
+
+    function Nav() {
+      const [active, setActive] = useState('mindset');
+      useEffect(() => {
+        const obs = new IntersectionObserver(entries => { entries.forEach(e => { if (e.isIntersecting) setActive(e.target.id); }); }, { threshold: 0.3 });
+        SECTIONS.forEach(({ id }) => { const el = document.getElementById(id); if (el) obs.observe(el); });
+        return () => obs.disconnect();
+      }, []);
+      const scrollTo = id => document.getElementById(id)?.scrollIntoView({ behavior:'smooth' });
+      return (
+        <nav style={{ position:'sticky', top:0, zIndex:50, width:'100%', background:'rgba(8,8,8,0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid #222' }}>
+          <div className="container">
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height:56, gap:8 }}>
+              <div style={{ display:'flex', flexDirection:'column', lineHeight:1 }}>
+                <span className="bebas" style={{ color:'#D4A843', letterSpacing:'0.1em', fontSize:'1.2rem' }}>SMART MONEY</span>
+                <span style={{ color:'#444', fontSize:'0.55rem', textTransform:'uppercase', letterSpacing:'0.15em', marginTop:2 }}>Level Five</span>
+              </div>
+              <div style={{ display:'flex', gap:2, flexWrap:'wrap', justifyContent:'flex-end' }}>
+                {SECTIONS.map(({ id, label }) => (
+                  <button key={id} onClick={() => scrollTo(id)} style={{ padding:'4px 10px', fontSize:'0.63rem', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em', color: active===id ? '#D4A843' : '#555', background:'none', border:'none', borderBottom: active===id ? '2px solid #D4A843' : '2px solid transparent', cursor:'pointer', whiteSpace:'nowrap' }}>{label}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </nav>
+      );
+    }
+
+    function Hero() {
+      const [vis, setVis] = useState(false);
+      useEffect(() => { setTimeout(() => setVis(true), 100); }, []);
+      return (
+        <section style={{ minHeight:'60vh', display:'flex', flexDirection:'column', justifyContent:'center', padding:'80px 0 60px', background:'radial-gradient(ellipse at 50% 0%, #0a0d1a 0%, #080808 65%)' }}>
+          <div className="container">
+            <div style={{ opacity:vis?1:0, transform:vis?'translateY(0)':'translateY(24px)', transition:'all 0.8s ease' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20 }}>
+                <div style={{ width:40, height:2, background:'#D4A843' }}/>
+                <span className="bebas" style={{ color:'#D4A843', letterSpacing:'0.2em', fontSize:'0.9rem' }}>LEVEL FIVE</span>
+              </div>
+              <h1 className="bebas" style={{ fontSize:'clamp(3rem,12vw,7rem)', letterSpacing:'0.04em', lineHeight:0.9, color:'white', marginBottom:24 }}>Building<br/>a<br/>Business</h1>
+              <p style={{ color:'#888', fontSize:'clamp(0.9rem,2vw,1.1rem)', maxWidth:540, lineHeight:1.8, marginBottom:40 }}>
+                Investing in a business is very different from building one. Building requires a different kind of capital — time, attention, and tolerance for chaos. This presentation is for athletes who want to create something, not just own a piece of something someone else built.
+              </p>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:24 }}>
+                {[{ num:'90%', label:'Small businesses that fail in year one' }, { num:'#1', label:'Reason: ran out of cash' }, { num:'10x', label:'Time a business takes vs. expectations' }].map(({ num, label }) => (
+                  <div key={label}>
+                    <div className="bebas" style={{ color:'#D4A843', fontSize:'2rem', letterSpacing:'0.04em', lineHeight:1 }}>{num}</div>
+                    <div style={{ color:'#444', fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.08em', marginTop:4 }}>{label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    function Section1() {
+      const modes = [
+        { title:'Investor', color:'#4488CC', icon:'💰', desc:'Provides capital. Does not operate. Returns depend on the operator\'s execution. Maximum leverage of capital, minimum leverage of time. The model covered in Level Four.', tradeoff:'Returns are real but capped by the operator\'s skill. You are a passenger.' },
+        { title:'Operator / Franchisee', color:'#D4A843', icon:'⚙️', desc:'Runs a business built on someone else\'s proven system. Franchise, licensing model, or management contract. Reduces the risk of unproven concepts — the playbook exists. Requires active management or a trusted general manager.', tradeoff:'Lower upside than a founder, but dramatically higher probability of generating stable income.' },
+        { title:'Founder', color:'#44AA66', icon:'🚀', desc:'Creates something from zero. Maximum upside potential. Maximum time, energy, and risk. Building a company while playing professionally is one of the hardest things to do well — most successful athlete-founders begin building seriously post-career or with exceptional infrastructure.', tradeoff:'The only path to building something generationally valuable — but also the most likely path to losing both time and capital if under-resourced.' },
+      ];
+      return (
+        <section id="mindset" style={{ padding:'80px 0' }}>
+          <div className="container">
+            <SectionLabel num="01" title="Investor, Operator, or Founder?" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              Most athletes who say they want to "build a business" haven't clarified what role they want to play in it. The answer determines everything — how much time is required, what the risk profile looks like, and what success actually means. Getting this wrong is one of the most common and expensive mistakes in the athlete business space.
+            </p>
+            <div style={{ display:'flex', flexDirection:'column', gap:12, marginBottom:48 }}>
+              {modes.map(m => (
+                <div key={m.title} className="card" style={{ padding:'28px', borderLeft:`3px solid ${m.color}` }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:14 }}>
+                    <span style={{ fontSize:'1.8rem' }}>{m.icon}</span>
+                    <div className="bebas" style={{ color:m.color, fontSize:'1.4rem', letterSpacing:'0.04em' }}>{m.title}</div>
+                  </div>
+                  <p style={{ color:'#aaa', fontSize:'0.85rem', lineHeight:1.8, marginBottom:14 }}>{m.desc}</p>
+                  <div style={{ padding:'10px 14px', background:'#0d0d0d', borderRadius:6, borderLeft:`2px solid ${m.color}` }}>
+                    <span style={{ color:m.color, fontSize:'0.62rem', textTransform:'uppercase', letterSpacing:'0.08em', fontWeight:600 }}>The trade-off: </span>
+                    <span style={{ color:'#666', fontSize:'0.78rem' }}>{m.tradeoff}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="card" style={{ background:'linear-gradient(135deg,#1a1200,#111)', border:'1px solid #D4A843', padding:'24px' }}>
+              <div className="bebas" style={{ color:'#D4A843', fontSize:'1rem', letterSpacing:'0.08em', marginBottom:10 }}>The Honest Question</div>
+              <p style={{ color:'#aaa', fontSize:'0.85rem', lineHeight:1.8, margin:0 }}>How many hours per week can genuinely be committed to this business right now? A franchise with a good operator might require 5–10 hours per week of oversight. Building a startup from scratch requires 40–60+. Be honest about the answer before choosing the model — mismatching role and capacity is where athlete business ventures go wrong most often.</p>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    function Section2() {
+      const [checked, setChecked] = useState(Array(8).fill(false));
+      const toggle = i => { const n = [...checked]; n[i] = !n[i]; setChecked(n); };
+      const validation = [
+        'Is there a real problem being solved — or is this a solution looking for a problem?',
+        'Who specifically is the customer? Can they be named, found, and reached?',
+        'Would 10 of those customers pay for this today — not "might," but actually pay?',
+        'What is the realistic market size? (Total addressable market, not aspirational projections)',
+        'Who already does this, and why would customers switch to a new entrant?',
+        'What does it actually cost to acquire one customer?',
+        'What does it cost to deliver the product or service — before any profit?',
+        'What happens to this business if the athlete\'s public profile diminishes?',
+      ];
+      return (
+        <section id="validation" style={{ padding:'80px 0', background:'#080808' }}>
+          <div className="container">
+            <SectionLabel num="02" title="From Idea to Entity" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              Most business ideas die between the idea and the first paying customer. The validation phase is designed to stress-test the concept before significant capital is deployed. The goal is not to prove the idea works — it's to find out as cheaply as possible if it doesn't.
+            </p>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>Before You Build Anything</div>
+              <p style={{ color:'#888', marginBottom:20, fontSize:'0.85rem', lineHeight:1.8 }}>These questions should be answered before an LLC is formed, a logo is designed, or a dollar is spent on product development. Tap each to check it off.</p>
+              <div className="card" style={{ padding:'24px' }}>
+                {validation.map((q, i) => (
+                  <div key={i} onClick={() => toggle(i)} style={{ display:'flex', gap:14, marginBottom:14, cursor:'pointer', alignItems:'flex-start' }}>
+                    <div style={{ marginTop:2, width:20, height:20, borderRadius:4, border:`1px solid ${checked[i] ? '#44AA66' : '#333'}`, background:checked[i] ? '#44AA6620' : 'transparent', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                      {checked[i] && <span style={{ color:'#44AA66', fontSize:12 }}>✓</span>}
+                    </div>
+                    <span style={{ color:checked[i] ? '#44AA66' : '#777', fontSize:'0.82rem', lineHeight:1.6 }}>{q}</span>
+                  </div>
+                ))}
+                {checked.every(Boolean) && (
+                  <div style={{ marginTop:8, padding:'10px 16px', borderRadius:8, background:'#0a1a0a', border:'1px solid #44AA66', color:'#44AA66', fontSize:'0.82rem', fontWeight:600, textAlign:'center' }}>
+                    ✓ Validation checklist complete — ready to build the business plan
+                  </div>
+                )}
+              </div>
+            </div>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>The Build Sequence</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:0, borderRadius:12, overflow:'hidden', border:'1px solid #1a1a1a' }}>
+                {[{ step:'01', phase:'Validate', action:'Talk to 20+ potential customers before building anything. Listen to what problem they describe — not the solution you want to sell them.' }, { step:'02', phase:'Minimum Viable Product', action:'Build the simplest possible version that solves the core problem. Not the full vision. The version that earns the first dollar.' }, { step:'03', phase:'First Revenue', action:'The only real validation is a paying customer. Not a letter of intent, not a verbal commitment — a transaction.' }, { step:'04', phase:'Refine', action:'Use real customer feedback to improve the product. Avoid building features before the core problem is solved.' }, { step:'05', phase:'Entity & Structure', action:'Now form the LLC or corporation, open a business bank account, and separate business and personal finances entirely.' }, { step:'06', phase:'Scale', action:'Once the unit economics are proven — revenue covers delivery costs with margin — begin investing in growth.' }].map(({ step, phase, action }, i) => (
+                  <div key={step} style={{ display:'grid', gridTemplateColumns:'48px 120px 1fr', gap:16, padding:'16px 20px', background: i%2===0 ? '#0d0d0d' : '#0a0a0a', borderBottom: i<5 ? '1px solid #111' : 'none', alignItems:'flex-start' }}>
+                    <span className="bebas" style={{ color:'#D4A843', fontSize:'1.4rem', letterSpacing:'0.04em' }}>{step}</span>
+                    <span className="bebas" style={{ color:'white', fontSize:'0.9rem', letterSpacing:'0.04em', paddingTop:2 }}>{phase}</span>
+                    <span style={{ color:'#777', fontSize:'0.8rem', lineHeight:1.6 }}>{action}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="grid-2">
+              <div className="card" style={{ borderTop:'3px solid #CC3333', padding:'22px' }}>
+                <div className="bebas" style={{ color:'#CC3333', fontSize:'1rem', letterSpacing:'0.04em', marginBottom:10 }}>The Athlete Brand Trap</div>
+                <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, margin:0 }}>Athletes often attract early customers because of their name — not because the product is excellent. This creates false validation. The real test: would strangers with no idea who the founder is pay for this? Build the product to pass that test.</p>
+              </div>
+              <div className="card" style={{ borderTop:'3px solid #44AA66', padding:'22px' }}>
+                <div className="bebas" style={{ color:'#44AA66', fontSize:'1rem', letterSpacing:'0.04em', marginBottom:10 }}>The Athlete Brand Advantage</div>
+                <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, margin:0 }}>A genuine athlete brand is one of the most valuable marketing assets that exists. Distribution, press attention, and consumer trust that a typical startup would spend years building can be activated immediately. The product still has to be good — but the runway to prove it is longer.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    function Section3() {
+      const [scenario, setScenario] = useState(0);
+      const scenarios = [
+        { label:'Bootstrap', color:'#44AA66', ownership:'100%', speed:'Slow', risk:'Low capital risk, high time risk', best:'Service businesses, consulting, licensing models with fast cash cycles', desc:'Build the business using revenue from customers rather than outside capital. Full ownership retained. Growth is limited by how much cash the business generates. Forces early discipline on unit economics.' },
+        { label:'Friends & Family', color:'#D4A843', ownership:'90–95%', speed:'Medium', risk:'Relationship risk if business fails', best:'Early stage when track record is minimal and the business is pre-revenue', desc:'Raise small amounts from personal network. Typically $25K–$500K. Often structured as convertible notes or simple equity. Low cost of capital — but failure has personal consequences beyond money.' },
+        { label:'Angel Investors', color:'#4488CC', ownership:'70–90%', speed:'Medium', risk:'Moderate dilution, some reporting obligations', best:'Post-revenue, pre-institutional. Needs external validation beyond personal network', desc:'High-net-worth individuals who invest in early-stage companies. Typical check: $25K–$250K. Often bring industry relationships alongside capital. Generally less demanding than institutional VCs.' },
+        { label:'Venture Capital', color:'#9966CC', ownership:'50–70%', speed:'Fast', risk:'High dilution, board seats, growth pressure', best:'Software, tech, or scalable consumer companies with large addressable markets', desc:'Institutional capital in exchange for equity and typically a board seat. VC investors expect returns of 10x+. They will push for aggressive growth. Not appropriate for most lifestyle or local businesses — only for companies with genuine scale potential.' },
+        { label:'Bank / SBA Loan', color:'#E07020', ownership:'100%', speed:'Medium', risk:'Personal guarantee often required. Debt must be repaid regardless of performance', best:'Established businesses with revenue, for expansion or equipment. Franchise purchases.', desc:'Debt financing that does not dilute ownership. Monthly payments required regardless of business performance. SBA loans are government-backed, offering better terms for small businesses. Athletes should understand that "loan" means obligation — not option.' },
+      ];
+      const s = scenarios[scenario];
+      return (
+        <section id="funding" style={{ padding:'80px 0' }}>
+          <div className="container">
+            <SectionLabel num="03" title="Funding the Business" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              Every dollar of outside capital comes with a cost — either equity (ownership given up permanently) or debt (cash that must be repaid with interest). The right funding structure depends on the type of business, its stage, and how much control matters. Most athletes who self-fund have a significant advantage: patient capital with no obligation to outside investors.
+            </p>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>Funding Options</div>
+              <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:20 }}>
+                {scenarios.map((sc, i) => (
+                  <button key={sc.label} onClick={() => setScenario(i)} style={{ padding:'8px 16px', borderRadius:20, border:`1px solid ${scenario===i ? sc.color : '#1a1a1a'}`, background: scenario===i ? `${sc.color}15` : '#0d0d0d', color: scenario===i ? sc.color : '#555', fontSize:'0.75rem', fontWeight:600, cursor:'pointer', fontFamily:'Open Sans, sans-serif' }}>{sc.label}</button>
+                ))}
+              </div>
+              <div className="card" style={{ padding:'28px', borderLeft:`3px solid ${s.color}` }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))', gap:16, marginBottom:20 }}>
+                  {[{ label:'Ownership Retained', val:s.ownership, color:s.color }, { label:'Growth Speed', val:s.speed, color:'#888' }, { label:'Risk Profile', val:s.risk, color:'#CC3333' }].map(({ label, val, color }) => (
+                    <div key={label} style={{ padding:'14px', background:'#0d0d0d', borderRadius:8, border:'1px solid #1a1a1a' }}>
+                      <div style={{ color:'#444', fontSize:'0.62rem', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:6 }}>{label}</div>
+                      <div className="bebas" style={{ color, fontSize:'1rem', letterSpacing:'0.04em', lineHeight:1.3 }}>{val}</div>
+                    </div>
+                  ))}
+                </div>
+                <p style={{ color:'#aaa', fontSize:'0.85rem', lineHeight:1.8, marginBottom:16 }}>{s.desc}</p>
+                <div style={{ padding:'10px 14px', background:'#0a0a0a', borderRadius:6, borderLeft:`2px solid ${s.color}` }}>
+                  <span style={{ color:s.color, fontSize:'0.62rem', textTransform:'uppercase', letterSpacing:'0.08em', fontWeight:600 }}>Best for: </span>
+                  <span style={{ color:'#666', fontSize:'0.78rem' }}>{s.best}</span>
+                </div>
+              </div>
+            </div>
+            <div style={{ marginBottom:32 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>The Dilution Reality</div>
+              <div style={{ borderRadius:12, overflow:'hidden', border:'1px solid #1a1a1a', marginBottom:16 }}>
+                <div style={{ padding:'10px 16px', background:'#111', borderBottom:'1px solid #1a1a1a', display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr' }}>
+                  {['Round','Raised','Valuation','Founder Ownership'].map(h => <span key={h} style={{ color:'#444', fontSize:'0.62rem', textTransform:'uppercase', letterSpacing:'0.08em' }}>{h}</span>)}
+                </div>
+                {[{ round:'Founded', raised:'—', val:'$1M', own:'100%', color:'#44AA66' }, { round:'Seed', raised:'$500K', val:'$5M', own:'90%', color:'#D4A843' }, { round:'Series A', raised:'$3M', val:'$15M', own:'72%', color:'#4488CC' }, { round:'Series B', raised:'$12M', val:'$50M', own:'58%', color:'#9966CC' }, { round:'Exit @ $100M', raised:'—', val:'$100M', own:'~$48M*', color:'#E07020' }].map(({ round, raised, val, own, color }, i) => (
+                  <div key={round} style={{ padding:'12px 16px', background: i%2===0 ? '#0d0d0d' : '#0a0a0a', borderBottom: i<4 ? '1px solid #111' : 'none', display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', alignItems:'center' }}>
+                    <span style={{ color:'#888', fontSize:'0.78rem' }}>{round}</span>
+                    <span style={{ color:'#666', fontSize:'0.78rem' }}>{raised}</span>
+                    <span style={{ color:'#888', fontSize:'0.78rem' }}>{val}</span>
+                    <span className="bebas" style={{ color, fontSize:'1rem', letterSpacing:'0.04em' }}>{own}</span>
+                  </div>
+                ))}
+              </div>
+              <p style={{ color:'#444', fontSize:'0.7rem', lineHeight:1.6 }}>* Illustrative example only. After preferred returns, option pool, and dilution from all rounds. Actual founder proceeds depend on liquidation preferences and cap table structure.</p>
+            </div>
+            <ComplianceNote>Fundraising for a business involves securities law. Issuing equity to investors — even friends and family — requires legal documentation. Always involve a startup attorney before accepting outside capital.</ComplianceNote>
+          </div>
+        </section>
+      );
+    }
+
+    function Section4() {
+      const mistakes = [
+        { title:'Hiring too fast', desc:'Every hire before product-market fit is a bet that the current direction is right. If it\'s not, the team has to be rebuilt. Hire slow, fire fast, and keep the team small until the business model is proven.' },
+        { title:'Hiring friends and family', desc:'Loyalty is not a job qualification. Bring in people because they\'re excellent at something the business needs — not because the relationship is comfortable. The hardest conversations in any business are usually about underperforming people who are also personally close.' },
+        { title:'No equity agreements in writing', desc:'If equity is given to an employee, advisor, or co-founder, it must be documented in a shareholder agreement with vesting schedules and buyback provisions. Handshake equity deals become very expensive when the relationship ends.' },
+        { title:'Ignoring burn rate', desc:'Burn rate is how much cash the business spends per month above what it earns. Most businesses run out of money not because the idea failed — but because burn rate exceeded the timeline for the idea to prove itself. Know the exact number every week.' },
+        { title:'No separation of business and personal finances', desc:'Commingling funds pierces the corporate veil — it removes the liability protection the entity was created to provide. Separate bank accounts, separate cards, and no personal expenses through the business.' },
+      ];
+      return (
+        <section id="operations" style={{ padding:'80px 0', background:'#080808' }}>
+          <div className="container">
+            <SectionLabel num="04" title="Operations & Hiring" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              A business is a system that delivers value to customers repeatedly at a profit. Operations is how that system runs. Most first-time business owners underestimate the operational burden — and most athlete-owned businesses fail because the operator burden was underestimated, not because the concept was wrong.
+            </p>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>The First Hire Playbook</div>
+              <div className="grid-2" style={{ marginBottom:24 }}>
+                {[{ role:'General Manager / Operator', color:'#D4A843', when:'First hire for any business where the athlete cannot be present daily', what:'Runs day-to-day operations. Must be empowered to make decisions without constant escalation. This is the most important hire in an athlete\'s business — and the most commonly mis-hired.' }, { role:'Accountant / Bookkeeper', color:'#44AA66', when:'From day one of revenue', what:'Keeps financial records clean, tracks burn rate, files payroll and sales taxes. Not optional. Most business failures have accounting chaos as a contributing factor.' }, { role:'Legal Counsel (Startup Attorney)', color:'#4488CC', when:'Before the first outside hire or investor', what:'Drafts employment agreements, equity documents, IP assignments, and vendor contracts. Expensive upfront, far cheaper than litigation later.' }, { role:'Marketing / Content', color:'#9966CC', when:'After product-market fit is established', what:'The athlete brand is the distribution advantage — but it needs infrastructure to be deployed consistently. A content strategy run by a dedicated person outperforms ad-hoc posts by the athlete alone.' }].map(({ role, color, when, what }) => (
+                  <div key={role} className="card" style={{ padding:'22px', borderTop:`3px solid ${color}` }}>
+                    <div className="bebas" style={{ color, fontSize:'0.95rem', letterSpacing:'0.04em', marginBottom:10 }}>{role}</div>
+                    <div style={{ marginBottom:10 }}><span style={{ color:'#444', fontSize:'0.62rem', textTransform:'uppercase', letterSpacing:'0.08em' }}>When: </span><span style={{ color:'#777', fontSize:'0.78rem' }}>{when}</span></div>
+                    <p style={{ color:'#666', fontSize:'0.78rem', lineHeight:1.7, margin:0 }}>{what}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>Equity Compensation</div>
+              <p style={{ color:'#888', marginBottom:20, fontSize:'0.85rem', lineHeight:1.8 }}>Giving equity to employees and advisors is a powerful way to attract talent and align incentives — but only if structured properly. Poorly structured equity is worse than no equity.</p>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {[{ title:'Vesting Schedule', color:'#D4A843', body:'Standard: 4-year vesting with a 1-year cliff. The employee earns nothing in year one (the cliff). After the cliff, equity vests monthly or quarterly over the remaining 3 years. If they leave before the cliff, they leave with nothing. This protects against early departures.' }, { title:'Option Pool', color:'#4488CC', body:'A block of shares reserved for future employees (typically 10–20% of fully diluted shares). Established before bringing in outside investors. Options give employees the right to buy shares at a fixed price (the strike price) — not the shares themselves.' }, { title:'Advisor Grants', color:'#44AA66', body:'Advisors typically receive 0.1–0.5% equity vesting over 1–2 years. In exchange for introductions, strategic guidance, and credibility. Formalise with an advisor agreement that includes what is expected from both sides — not just a handshake over a dinner.' }, { title:'83(b) Election', color:'#9966CC', body:'If founders or early employees receive stock (not options), filing an 83(b) election with the IRS within 30 days of the grant can save significant tax. It locks in the tax basis at the current (low) value rather than at vesting when the stock may be worth much more. Miss the 30-day window and the election is permanently unavailable.' }].map(({ title, color, body }) => (
+                  <div key={title} className="card" style={{ borderLeft:`3px solid ${color}`, padding:'18px 24px' }}>
+                    <div className="bebas" style={{ color, fontSize:'1rem', letterSpacing:'0.04em', marginBottom:8 }}>{title}</div>
+                    <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, margin:0 }}>{body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ marginBottom:32 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>The Five Operational Mistakes</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {mistakes.map((m, i) => (
+                  <div key={i} style={{ display:'flex', gap:16, padding:'16px 20px', background:'#0d0d0d', borderRadius:8, border:'1px solid #161616', alignItems:'flex-start' }}>
+                    <span className="bebas" style={{ color:'#CC3333', fontSize:'1.2rem', flexShrink:0, lineHeight:1.2 }}>{String(i+1).padStart(2,'0')}</span>
+                    <div><div className="bebas" style={{ color:'white', fontSize:'0.85rem', letterSpacing:'0.04em', marginBottom:6 }}>{m.title}</div><p style={{ color:'#666', fontSize:'0.8rem', lineHeight:1.7, margin:0 }}>{m.desc}</p></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <ComplianceNote>Equity compensation involves securities law and tax consequences. All equity grants require attorney-drafted documentation. The 83(b) election must be filed within 30 days of grant — consult a CPA immediately upon receiving equity.</ComplianceNote>
+          </div>
+        </section>
+      );
+    }
+
+    function Section5() {
+      const [revenue, setRevenue] = useState(100);
+      const [cac, setCac] = useState(50);
+      const [ltv, setLtv] = useState(200);
+      const [cogs, setCogs] = useState(40);
+      const margin = ((revenue - cogs) / revenue * 100).toFixed(0);
+      const ltvCacRatio = (ltv / cac).toFixed(1);
+      const ltvCacColor = ltvCacRatio >= 3 ? '#44AA66' : ltvCacRatio >= 1.5 ? '#D4A843' : '#CC3333';
+      const marginColor = margin >= 60 ? '#44AA66' : margin >= 30 ? '#D4A843' : '#CC3333';
+      return (
+        <section id="economics" style={{ padding:'80px 0' }}>
+          <div className="container">
+            <SectionLabel num="05" title="Unit Economics" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              Unit economics is the financial performance of a single transaction, customer, or unit — stripped of everything else. Before asking "how big can this get," the question is "does one transaction make money?" Every business that scaled without proven unit economics eventually collapsed. Every business that scaled with good unit economics had a foundation.
+            </p>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:8 }}>The Key Metrics</div>
+              <div className="card" style={{ padding:'28px', marginBottom:24 }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:16, marginBottom:24 }}>
+                  {[
+                    { label:'Revenue per Unit', val:`$${revenue}`, key:'revenue', min:10, max:500, step:10, setter:setRevenue },
+                    { label:'Cost of Goods (COGS)', val:`$${cogs}`, key:'cogs', min:5, max:revenue-1, step:5, setter:setCogs },
+                    { label:'Customer Acq. Cost (CAC)', val:`$${cac}`, key:'cac', min:5, max:500, step:5, setter:setCac },
+                    { label:'Lifetime Value (LTV)', val:`$${ltv}`, key:'ltv', min:50, max:2000, step:50, setter:setLtv },
+                  ].map(({ label, val, key, min, max, step, setter }) => (
+                    <div key={key}>
+                      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+                        <span style={{ color:'#555', fontSize:'0.68rem', textTransform:'uppercase', letterSpacing:'0.06em' }}>{label}</span>
+                        <span className="bebas" style={{ color:'#D4A843', fontSize:'1rem' }}>{val}</span>
+                      </div>
+                      <input type="range" min={min} max={max} step={step} value={key==='cogs' ? cogs : key==='cac' ? cac : key==='ltv' ? ltv : revenue} onChange={e => setter(Number(e.target.value))} style={{ width:'100%', accentColor:'#D4A843' }} />
+                    </div>
+                  ))}
+                </div>
+                <div className="grid-2">
+                  <div style={{ padding:'20px', background:'#0d0d0d', borderRadius:10, border:`1px solid ${marginColor}30`, textAlign:'center' }}>
+                    <div className="bebas" style={{ color:marginColor, fontSize:'2.5rem', letterSpacing:'0.04em' }}>{margin}%</div>
+                    <div style={{ color:'#555', fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.08em', marginTop:4 }}>Gross Margin</div>
+                    <div style={{ color:'#444', fontSize:'0.7rem', marginTop:8 }}>{margin >= 60 ? 'Strong — scalable' : margin >= 30 ? 'Acceptable — monitor closely' : 'Thin — difficult to scale'}</div>
+                  </div>
+                  <div style={{ padding:'20px', background:'#0d0d0d', borderRadius:10, border:`1px solid ${ltvCacColor}30`, textAlign:'center' }}>
+                    <div className="bebas" style={{ color:ltvCacColor, fontSize:'2.5rem', letterSpacing:'0.04em' }}>{ltvCacRatio}x</div>
+                    <div style={{ color:'#555', fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.08em', marginTop:4 }}>LTV:CAC Ratio</div>
+                    <div style={{ color:'#444', fontSize:'0.7rem', marginTop:8 }}>{ltvCacRatio >= 3 ? 'Healthy — business can grow' : ltvCacRatio >= 1.5 ? 'Marginal — improve retention or reduce CAC' : 'Unsustainable — spending more to acquire than you earn'}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style={{ marginBottom:40 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>The Metrics Defined</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {[{ term:'CAC — Customer Acquisition Cost', def:'Total sales and marketing spend divided by the number of new customers acquired in the same period. Includes ad spend, salesperson salaries, commissions, and any free trials or discounts given to acquire the customer. Most businesses dramatically underestimate this by only counting ad spend.', color:'#D4A843' }, { term:'LTV — Customer Lifetime Value', def:'The total revenue a single customer is expected to generate over their entire relationship with the business. Calculated as: Average Purchase Value × Purchase Frequency × Average Customer Lifespan. LTV must exceed CAC for any business to be sustainable.', color:'#4488CC' }, { term:'Gross Margin', def:'Revenue minus cost of goods sold (COGS), divided by revenue. COGS includes everything directly required to deliver the product or service — materials, manufacturing, direct labor. Does not include rent, salaries, or marketing. The foundation of every other profitability metric.', color:'#44AA66' }, { term:'Burn Rate', def:'Net cash outflow per month — how much cash the business consumes above what it earns. Divide current cash balance by monthly burn rate to get runway: the number of months before the business runs out of money without new revenue or investment.', color:'#CC3333' }, { term:'Payback Period', def:'How long it takes to recover the cost of acquiring one customer from that customer\'s gross margin contribution. If CAC is $100 and the customer generates $20/month in gross margin, payback period is 5 months. Shorter payback = less capital required to grow.', color:'#9966CC' }].map(({ term, def, color }) => (
+                  <div key={term} className="card" style={{ padding:'18px 24px', borderLeft:`3px solid ${color}` }}>
+                    <div className="bebas" style={{ color, fontSize:'0.9rem', letterSpacing:'0.04em', marginBottom:8 }}>{term}</div>
+                    <p style={{ color:'#777', fontSize:'0.8rem', lineHeight:1.8, margin:0 }}>{def}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    function Section6() {
+      return (
+        <section id="brand-ip" style={{ padding:'80px 0', background:'#080808' }}>
+          <div className="container">
+            <SectionLabel num="06" title="Brand & Intellectual Property" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              An athlete's name, likeness, and public persona are assets. The question is whether they're owned, protected, and monetized strategically — or left exposed and underutilized. Most athletes have significant untapped IP value that requires nothing more than proper structuring to capture.
+            </p>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>Name, Image & Likeness (NIL)</div>
+              <div className="grid-2" style={{ marginBottom:24 }}>
+                <div className="card" style={{ padding:'24px' }}>
+                  <div className="bebas" style={{ color:'#D4A843', fontSize:'1.1rem', letterSpacing:'0.04em', marginBottom:14 }}>What NIL Covers</div>
+                  {['Name: How your name is used in commercial contexts', 'Image: Photos, illustrations, and visual representations', 'Likeness: Voice, signature, persona, and style', 'Performance data in commercial products (video games, fantasy)', 'Social media handle and online persona'].map(item => (
+                    <div key={item} style={{ display:'flex', gap:8, marginBottom:10 }}>
+                      <span style={{ color:'#D4A843', flexShrink:0, fontSize:'0.8rem' }}>→</span>
+                      <span style={{ color:'#777', fontSize:'0.78rem', lineHeight:1.6 }}>{item}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="card" style={{ padding:'24px' }}>
+                  <div className="bebas" style={{ color:'#CC3333', fontSize:'1.1rem', letterSpacing:'0.04em', marginBottom:14 }}>What to Watch For</div>
+                  {['Endorsement contracts that grant perpetual, global NIL rights for minimal compensation', 'League and team contracts that include broad NIL assignment clauses', '"Equity for exposure" deals where the exposure includes full NIL license', 'Social media contracts with auto-renewal and expanding usage rights', 'Deals that include family members\' likeness without separate compensation'].map(item => (
+                    <div key={item} style={{ display:'flex', gap:8, marginBottom:10 }}>
+                      <span style={{ color:'#CC3333', flexShrink:0, fontSize:'0.8rem' }}>✗</span>
+                      <span style={{ color:'#777', fontSize:'0.78rem', lineHeight:1.6 }}>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>Trademarks & IP Protection</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {[{ title:'Trademark Your Name & Brand', color:'#D4A843', body:'A federal trademark provides exclusive rights to use a name or mark in commerce. Without it, anyone can build a brand using a similar name — especially once a player retires and enforcement becomes harder. Register the name, any logos, and any signature phrases or slogans with commercial value. The USPTO registration process takes 8–12 months but confers nationwide protection.' }, { title:'Own Your Social Media Handles', color:'#4488CC', body:'Social media accounts are not IP — they\'re platform-dependent. But the audience built there has real commercial value. Maintain consistent handles across platforms, register brand variations to prevent impersonation, and ensure that management contracts do not transfer control of accounts to third parties.' }, { title:'IP Assignment in Every Agreement', color:'#44AA66', body:'Any contractor, developer, designer, or agency who creates something for the business — a logo, website, app, content — should sign an IP assignment agreement before the work begins. Without it, the creator may own the work, not the business. Standard work-for-hire language in a contract prevents this, but only if it\'s in writing before delivery.' }, { title:'Licensing vs. Ownership', color:'#9966CC', body:'Licensing IP means allowing others to use it for a fee while retaining ownership. Selling IP means permanent transfer. Athlete brands are best monetized through licensing — not permanent sale. A lifetime licensing deal for 10% of revenue can compound significantly; a one-time buyout of the same IP may undervalue it by 90%.' }].map(({ title, color, body }) => (
+                  <div key={title} className="card" style={{ borderLeft:`3px solid ${color}`, padding:'18px 24px' }}>
+                    <div className="bebas" style={{ color, fontSize:'1rem', letterSpacing:'0.04em', marginBottom:8 }}>{title}</div>
+                    <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, margin:0 }}>{body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <ComplianceNote>Trademark registration, NIL contract review, and IP assignment agreements require an attorney with intellectual property expertise. League and team contracts may restrict certain commercial activities — review carefully before signing any endorsement deal.</ComplianceNote>
+          </div>
+        </section>
+      );
+    }
+
+    function Section7() {
+      return (
+        <section id="the-exit" style={{ padding:'80px 0' }}>
+          <div className="container">
+            <SectionLabel num="07" title="The Exit" />
+            <p style={{ color:'#888', marginBottom:40, maxWidth:640, lineHeight:1.9 }}>
+              The exit is when the business is sold — in whole or in part. For most business owners, the exit is the largest liquidity event of their financial life. Most owners wait too long to start planning it, and the ones who plan early consistently get better outcomes. The exit is not the end of the story. It's a transition — and the terms of that transition matter as much as the price.
+            </p>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>How Businesses Are Valued</div>
+              <div className="card" style={{ padding:'28px', marginBottom:24 }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:16, marginBottom:20 }}>
+                  {[{ method:'Revenue Multiple', formula:'Revenue × Multiple', example:'$2M revenue × 3x = $6M', when:'Early-stage or high-growth companies', color:'#D4A843' }, { method:'EBITDA Multiple', formula:'EBITDA × Multiple', example:'$500K EBITDA × 8x = $4M', when:'Profitable businesses with stable cash flows', color:'#44AA66' }, { method:'DCF (Discounted Cash Flow)', formula:'PV of future cash flows', example:'Complex — requires financial model', when:'Large transactions or sophisticated buyers', color:'#4488CC' }].map(({ method, formula, example, when, color }) => (
+                    <div key={method} style={{ padding:'18px', background:'#0d0d0d', borderRadius:10, border:'1px solid #1a1a1a' }}>
+                      <div className="bebas" style={{ color, fontSize:'0.9rem', letterSpacing:'0.04em', marginBottom:8 }}>{method}</div>
+                      <div style={{ color:'#666', fontSize:'0.72rem', marginBottom:6 }}>{formula}</div>
+                      <div style={{ color:'#aaa', fontSize:'0.75rem', fontWeight:600, marginBottom:6 }}>{example}</div>
+                      <div style={{ color:'#444', fontSize:'0.68rem', lineHeight:1.5 }}>Used when: {when}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ padding:'14px 18px', background:'#0a0a0a', borderRadius:8, borderLeft:'2px solid #D4A843' }}>
+                  <p style={{ color:'#777', fontSize:'0.8rem', lineHeight:1.7, margin:0 }}>Industry multiples vary widely. A software business may sell for 5–10x revenue. A restaurant may sell for 2–3x EBITDA. A franchise resale is priced on location, lease terms, and trailing cash flow. Know what your specific industry trades at before entering any conversation with a buyer.</p>
+                </div>
+              </div>
+            </div>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>Exit Structures</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:24 }}>
+                {[{ type:'Strategic Acquisition', color:'#D4A843', desc:'A larger company buys the business to acquire its customers, technology, team, or market position. Often the highest-priced exit — strategic buyers pay for synergies. Process can be complex and time-consuming. Requires an M&A attorney and often an investment banker.' }, { type:'Private Equity Sale', color:'#4488CC', desc:'A PE firm acquires the business to improve and eventually resell it. The founder may retain equity in the new structure and benefit from the "second bite" when the PE firm exits. PE buyers are sophisticated — they will diligence everything. Clean books and contracts are not optional.' }, { type:'Management Buyout', color:'#44AA66', desc:'The existing management team purchases the business from the owner. Often financed with debt. Requires the team to have capital or financing lined up. Can be emotionally cleaner for founders who want continuity of the culture they built.' }, { type:'Earnout', color:'#E07020', desc:'A portion of the purchase price is contingent on future performance. The buyer pays a base amount at closing, then pays additional consideration if the business hits agreed revenue or profit targets post-close. Common when buyer and seller disagree on valuation. Requires careful legal structuring — earnouts are frequently disputed.' }].map(({ type, color, desc }) => (
+                  <div key={type} className="card" style={{ borderLeft:`3px solid ${color}`, padding:'18px 24px' }}>
+                    <div className="bebas" style={{ color, fontSize:'1rem', letterSpacing:'0.04em', marginBottom:8 }}>{type}</div>
+                    <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, margin:0 }}>{desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ marginBottom:48 }}>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,4vw,2.5rem)', letterSpacing:'0.04em', marginBottom:16 }}>What Happens After You Sell</div>
+              <div className="grid-2">
+                {[{ title:'Tax on the Sale', color:'#CC3333', body:'Business sale proceeds are taxable. The tax treatment depends on how the sale is structured (asset sale vs. stock sale), how long assets were held, and the cost basis. Long-term capital gains rates apply to assets held more than a year. QSBS exclusion can shelter up to $10M+ in gains if the business was structured as a C-Corp and qualifies. Plan the tax consequences before signing anything.' }, { title:'The Non-Compete', color:'#D4A843', body:'Most business sale agreements include a non-compete clause — the seller agrees not to start a competing business for a specified period in a specified geography. Non-competes are negotiable on duration and scope. Understand what you\'re agreeing to before signing — especially if the business was in a space where you want to remain active.' }, { title:'Locked-Up Proceeds', color:'#4488CC', body:'Proceeds are not always all-cash at closing. Seller notes (where the buyer pays over time), earnouts, and equity rollovers are common. Model the actual cash received at closing vs. over time, and the credit risk of any deferred payments.' }, { title:'Reinvestment Plan', color:'#44AA66', body:'A significant liquidity event creates a reinvestment decision. The proceeds from a business sale should be integrated into the broader financial plan before they arrive — not after. A windfall without a deployment plan often results in poor capital allocation decisions made under time pressure.' }].map(({ title, color, body }) => (
+                  <div key={title} className="card" style={{ padding:'22px', borderTop:`3px solid ${color}` }}>
+                    <div className="bebas" style={{ color, fontSize:'1rem', letterSpacing:'0.04em', marginBottom:10 }}>{title}</div>
+                    <p style={{ color:'#777', fontSize:'0.82rem', lineHeight:1.8, margin:0 }}>{body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ borderRadius:12, padding:'40px 24px', textAlign:'center', background:'linear-gradient(135deg,#1a1200 0%,#111 100%)', border:'1px solid #D4A843', marginBottom:48 }}>
+              <div className="bebas" style={{ color:'#D4A843', fontSize:'clamp(1.5rem,5vw,2.5rem)', letterSpacing:'0.03em', lineHeight:1.2 }}>Build something worth owning.</div>
+              <div className="bebas" style={{ color:'white', fontSize:'clamp(1.5rem,5vw,2.5rem)', letterSpacing:'0.03em', lineHeight:1.2, marginTop:4 }}>Then decide whether to keep it or sell it.</div>
+            </div>
+            <div style={{ margin:'0 -16px', padding:'20px 16px', textAlign:'center', background:'#D4A843' }}>
+              <div className="bebas" style={{ color:'black', fontSize:'clamp(1rem,4vw,1.5rem)', letterSpacing:'0.12em' }}>SMART MONEY | FINANCIAL LITERACY FOR PROFESSIONAL ATHLETES</div>
+            </div>
+            <p style={{ textAlign:'center', fontSize:'0.7rem', color:'#444', padding:'20px 0' }}>Built for educational purposes only. Not legal or business advice.</p>
+          </div>
+        </section>
+      );
+    }
+
+    function App() {
+      return (
+        <div style={{ background:'#080808', minHeight:'100vh' }}>
+          <div style={{ background:'#1a0a00', borderBottom:'1px solid #D4A843', padding:'10px 20px', textAlign:'center' }}>
+            <p style={{ color:'#D4A843', fontSize:'0.72rem', letterSpacing:'0.08em', textTransform:'uppercase', margin:0, lineHeight:1.5 }}>
+              <strong>Disclaimer:</strong> This presentation is for <strong>educational purposes only</strong> and does not constitute legal, business, or investment advice. Consult a licensed attorney, CPA, and business advisor before making any business decisions.
+            </p>
+          </div>
+          <Nav />
+          <CourtDivider />
+          <Hero />
+          <CourtDivider />
+          <Section1 />
+          <CourtDivider />
+          <Section2 />
+          <CourtDivider />
+          <Section3 />
+          <CourtDivider />
+          <Section4 />
+          <CourtDivider />
+          <Section5 />
+          <CourtDivider />
+          <Section6 />
+          <CourtDivider />
+          <Section7 />
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>
