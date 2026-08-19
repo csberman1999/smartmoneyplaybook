@@ -43,118 +43,6 @@
   .screen.hidden { display: none !important; }
 
   /* ═══════════════════════════════════════
-     LOGIN
-  ═══════════════════════════════════════ */
-  #login {
-    align-items: center;
-    justify-content: center;
-    padding: 1.5rem;
-  }
-
-  .login-box {
-    width: 100%;
-    max-width: 360px;
-  }
-
-  .wordmark {
-    text-align: center;
-    margin-bottom: 2.5rem;
-  }
-  .wordmark-sup {
-    display: block;
-    color: var(--gold);
-    font-size: .65rem;
-    font-weight: 700;
-    letter-spacing: .3em;
-    text-transform: uppercase;
-    margin-bottom: .5rem;
-  }
-  .wordmark-title {
-    font-size: clamp(2.2rem, 8vw, 3rem);
-    font-weight: 800;
-    color: #fff;
-    letter-spacing: -.02em;
-    line-height: 1;
-  }
-  .wordmark-sub {
-    margin-top: .5rem;
-    font-size: .8rem;
-    color: var(--muted);
-    letter-spacing: .05em;
-  }
-
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 1rem;
-    padding: 2rem;
-  }
-
-  .field-label {
-    display: block;
-    font-size: .65rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: .2em;
-    color: var(--muted);
-    margin-bottom: .5rem;
-  }
-
-  .field-input {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    color: var(--text);
-    border-radius: .5rem;
-    padding: .75rem 1rem;
-    font-size: .875rem;
-    outline: none;
-    transition: border-color .15s;
-  }
-  .field-input::placeholder { color: var(--faint); }
-  .field-input:focus { border-color: var(--gold); }
-
-  .error-msg {
-    color: var(--red);
-    font-size: .75rem;
-    margin-top: .75rem;
-    min-height: 1rem;
-  }
-
-  .btn-primary {
-    margin-top: 1.25rem;
-    width: 100%;
-    background: var(--gold);
-    color: #000;
-    font-weight: 700;
-    font-size: .875rem;
-    letter-spacing: .05em;
-    border: none;
-    border-radius: .5rem;
-    padding: .8rem 1rem;
-    cursor: pointer;
-    transition: background .15s;
-  }
-  .btn-primary:hover { background: var(--gold-dim); }
-
-  .login-footer {
-    margin-top: 1.5rem;
-    text-align: center;
-    font-size: .7rem;
-    color: var(--faint);
-    line-height: 1.6;
-  }
-
-  @keyframes shake {
-    0%,100% { transform: translateX(0); }
-    20%      { transform: translateX(-6px); }
-    40%      { transform: translateX(6px); }
-    60%      { transform: translateX(-4px); }
-    80%      { transform: translateX(4px); }
-  }
-  .shake { animation: shake .4s ease; }
-
-  /* ═══════════════════════════════════════
      DASHBOARD
   ═══════════════════════════════════════ */
   #dashboard {
@@ -381,33 +269,7 @@
 </head>
 <body>
 
-<!-- ══════════════ LOGIN ══════════════ -->
-<div id="login" class="screen">
-  <div class="login-box">
-    <div class="wordmark">
-      <span class="wordmark-sup">Smart Money</span>
-      <div class="wordmark-title">THE PLAYBOOK</div>
-      <div class="wordmark-sub">Financial Literacy Curriculum</div>
-    </div>
-
-    <div class="card" id="login-card">
-      <label class="field-label" for="pw-input">Access Code</label>
-      <input
-        id="pw-input"
-        class="field-input"
-        type="password"
-        placeholder="Enter your access code"
-        autocomplete="off"
-      />
-      <div class="error-msg" id="pw-error"></div>
-      <button class="btn-primary" id="pw-submit">Access Curriculum</button>
-    </div>
-
-    <p class="login-footer">
-      Access is granted by your coach.<br>Contact them if you need your code.
-    </p>
-  </div>
-</div>
+<!-- Login screen removed: Cloudflare Access authenticates before this page loads. -->
 
 <!-- ══════════════ DASHBOARD ══════════════ -->
 <div id="dashboard" class="screen hidden">
@@ -473,11 +335,9 @@
 </div>
 
 <script>
-  // ─── CHANGE THIS to your chosen password ────────────────────────────
-  var PASSWORD = 'gametime!84';
-  // ────────────────────────────────────────────────────────────────────
-
-  var SESSION_KEY = 'sm_auth';
+  // Access control lives in Cloudflare Access, not in this file.
+  // To add or remove people: Cloudflare Zero Trust → Access → Applications
+  // → The Playbook → the "Approved Users" policy → edit the email list.
 
   var levels = [
     {
@@ -528,10 +388,6 @@
   function show(id) { document.getElementById(id).classList.remove('hidden'); }
   function hide(id) { document.getElementById(id).classList.add('hidden'); }
 
-  function isLoggedIn() { return sessionStorage.getItem(SESSION_KEY) === '1'; }
-  function setLoggedIn() { sessionStorage.setItem(SESSION_KEY, '1'); }
-  function clearLogin()  { sessionStorage.removeItem(SESSION_KEY); }
-
   // ── card builder ──
   function buildCard(level) {
     var card = document.createElement('button');
@@ -570,13 +426,8 @@
   }
 
   // ── routing ──
-  function goLogin() {
-    hide('dashboard'); hide('viewer');
-    show('login');
-  }
-
   function goDashboard() {
-    hide('login'); hide('viewer');
+    hide('viewer');
     var frame = document.getElementById('level-frame');
     frame.src = '';
     show('dashboard');
@@ -585,48 +436,23 @@
   function openLevel(level) {
     document.getElementById('viewer-title').textContent = level.title;
     document.getElementById('level-frame').src = level.url;
-    hide('login'); hide('dashboard');
+    hide('dashboard');
     show('viewer');
   }
 
-  // ── login logic ──
-  document.getElementById('pw-submit').addEventListener('click', tryLogin);
-  document.getElementById('pw-input').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') tryLogin();
-  });
-
-  function tryLogin() {
-    var val = document.getElementById('pw-input').value.trim();
-    if (val === PASSWORD) {
-      setLoggedIn();
-      document.getElementById('pw-error').textContent = '';
-      document.getElementById('pw-input').value = '';
-      renderDashboard();
-      goDashboard();
-    } else {
-      document.getElementById('pw-error').textContent = 'Incorrect access code. Check with your coach.';
-      document.getElementById('pw-input').value = '';
-      var card = document.getElementById('login-card');
-      card.classList.remove('shake');
-      void card.offsetWidth; // reflow to restart animation
-      card.classList.add('shake');
-    }
-  }
-
+  // ── sign out ──
+  // Access is enforced by Cloudflare before this page ever loads, so signing
+  // out means ending the Cloudflare Access session, not a local one.
   document.getElementById('btn-logout').addEventListener('click', function() {
-    clearLogin();
-    goLogin();
+    window.location.href = '/cdn-cgi/access/logout';
   });
 
   document.getElementById('btn-back').addEventListener('click', goDashboard);
 
   // ── init ──
-  if (isLoggedIn()) {
-    renderDashboard();
-    goDashboard();
-  } else {
-    goLogin();
-  }
+  // No local gate: Cloudflare Access authenticates before this page is served.
+  renderDashboard();
+  goDashboard();
 </script>
 
 </body>
