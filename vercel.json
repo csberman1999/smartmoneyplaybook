@@ -1,6 +1,17 @@
 {
   "redirects": [
     {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": ".*\\.vercel\\.app"
+        }
+      ],
+      "destination": "https://www.smartmoneyplaybook.org/",
+      "permanent": false
+    },
+    {
       "source": "/:path*",
       "has": [
         {
